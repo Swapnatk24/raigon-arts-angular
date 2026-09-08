@@ -1,0 +1,242 @@
+<!-- =========================================
+     ADD CUSTOMER MODAL
+     ========================================= -->
+
+<div
+  class="modal-overlay active"
+  *ngIf="showAddCustomerModal"
+  (click)="closeAddCustomerModal()"
+>
+  <div
+    class="modal-container"
+    (click)="$event.stopPropagation()"
+  >
+
+    <div class="modal-header">
+
+      <div>
+        <h2>Add New Customer</h2>
+        <p>Add a new customer to your collection</p>
+      </div>
+
+      <button
+        type="button"
+        class="modal-close"
+        (click)="closeAddCustomerModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label>
+          Customer Name <span>*</span>
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="customerName"
+          (input)="validateName()"
+          placeholder="Enter customer name"
+        />
+
+        <small
+          class="error-message"
+          *ngIf="nameError"
+        >
+          {{ nameError }}
+        </small>
+      </div>
+
+
+      <div class="form-group">
+        <label>
+          Phone Number <span>*</span>
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="customerPhone"
+          (input)="validatePhone()"
+          maxlength="10"
+          inputmode="numeric"
+          placeholder="Enter 10 digit phone number"
+        />
+
+        <small
+          class="error-message"
+          *ngIf="phoneError"
+        >
+          {{ phoneError }}
+        </small>
+      </div>
+
+
+      <div class="form-group">
+        <label>Address</label>
+
+        <textarea
+          [(ngModel)]="customerAddress"
+          rows="3"
+          placeholder="Enter customer address"
+        ></textarea>
+      </div>
+
+
+      <div class="form-group">
+        <label>Customer Photo</label>
+
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onPhotoSelected($event)"
+        />
+      </div>
+
+
+      <div
+        class="photo-preview"
+        *ngIf="selectedPhoto"
+      >
+        <img
+          [src]="selectedPhoto.url"
+          alt="Customer Photo"
+        />
+      </div>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+      <button
+        type="button"
+        class="btn-cancel"
+        (click)="closeAddCustomerModal()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="btn-save"
+        (click)="saveCustomer()"
+      >
+        Add Customer
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+
+<!-- =========================================
+     FRAME SIZE MODAL
+     ========================================= -->
+
+<div
+  class="modal-overlay active"
+  *ngIf="showFrameSizeModal"
+  (click)="closeFrameSizeModal()"
+>
+
+  <div
+    class="modal-container"
+    (click)="$event.stopPropagation()"
+  >
+
+    <div class="modal-header">
+
+      <div>
+
+        <h2>Add Frame Size</h2>
+
+        <p>Add a new frame size</p>
+
+      </div>
+
+      <button
+        type="button"
+        class="modal-close"
+        (click)="closeFrameSizeModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <div class="form-group">
+
+        <label>
+          Frame Size <span>*</span>
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="frameSizeName"
+          placeholder="Example: 12 × 18 inch"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Width</label>
+
+        <input
+          type="number"
+          [(ngModel)]="frameSizeWidth"
+          placeholder="Width"
+        />
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>Height</label>
+
+        <input
+          type="number"
+          [(ngModel)]="frameSizeHeight"
+          placeholder="Height"
+        />
+
+      </div>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+      <button
+        type="button"
+        class="btn-cancel"
+        (click)="closeFrameSizeModal()"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="btn-save"
+        (click)="saveFrameSize()"
+      >
+        Add Frame Size
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+

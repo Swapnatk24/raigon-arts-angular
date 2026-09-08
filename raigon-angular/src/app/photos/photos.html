@@ -1,0 +1,402 @@
+<div class="page-header">
+
+  <div>
+
+    <h1 class="page-title">
+      Photo Collection
+    </h1>
+
+    <p class="page-subtitle">
+      Centralized digital vault for customer photo prints and framing specifications
+    </p>
+
+  </div>
+
+
+  <div class="flex gap-3">
+
+    <!-- SELECTED PHOTO ACTIONS -->
+
+    <ng-container
+      *ngIf="selectedPhotoIds.size > 0">
+
+      <button
+        class="btn btn-secondary btn-sm"
+        (click)="downloadSelected()">
+
+        <i class="fa-solid fa-download"></i>
+
+        Download Selected
+        ({{ selectedPhotoIds.size }})
+
+      </button>
+
+
+      <button
+        class="btn btn-danger btn-sm"
+        (click)="deleteSelected()">
+
+        <i class="fa-solid fa-trash"></i>
+
+        Delete Selected
+        ({{ selectedPhotoIds.size }})
+
+      </button>
+
+    </ng-container>
+
+
+    <!-- GRID / LIST -->
+
+    <div
+      class="flex gap-1"
+      style="
+        background: var(--bg-surface);
+        padding: 4px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
+      ">
+
+      <button
+        class="btn-icon"
+        [class.btn-primary]="viewMode === 'grid'"
+        title="Grid View"
+        (click)="setViewMode('grid')">
+
+        <i class="fa-solid fa-border-all"></i>
+
+      </button>
+
+
+      <button
+        class="btn-icon"
+        [class.btn-primary]="viewMode === 'list'"
+        title="List View"
+        (click)="setViewMode('list')">
+
+        <i class="fa-solid fa-list"></i>
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- TOOLBAR -->
+
+<div
+  class="table-card"
+  style="margin-bottom: 24px;">
+
+  <div class="table-toolbar">
+
+    <div class="toolbar-left">
+
+      <div class="table-search">
+
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+        <input
+          type="text"
+          placeholder="Search by customer name, photo..."
+          [(ngModel)]="searchQuery">
+
+      </div>
+
+    </div>
+
+
+    <div class="toolbar-right">
+
+      <span class="text-sm text-muted">
+
+        Showing
+
+        <strong>
+          {{ filteredPhotos.length }}
+        </strong>
+
+        photos
+
+      </span>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- NO PHOTOS -->
+
+<div
+  *ngIf="filteredPhotos.length === 0"
+  class="table-card"
+  style="
+    padding: 60px;
+    text-align: center;
+    color: var(--text-muted);
+  ">
+
+  <i
+    class="fa-solid fa-image"
+    style="
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block;
+    ">
+  </i>
+
+  <p class="font-semibold text-lg">
+    No photos found
+  </p>
+
+  <p class="text-sm">
+    Try adjusting your search query or filter settings.
+  </p>
+
+</div>
+
+
+<!-- GRID VIEW -->
+
+<div
+  *ngIf="
+    filteredPhotos.length > 0 &&
+    viewMode === 'grid'
+  "
+  class="photo-gallery-grid">
+
+  <div
+    class="photo-card"
+    *ngFor="
+      let photo of filteredPhotos;
+      trackBy: trackByPhotoId
+    ">
+
+    <input
+      type="checkbox"
+      class="photo-select-checkbox"
+      [checked]="isSelected(photo.id)"
+      (change)="toggleSelect(photo.id)">
+
+
+    <div
+      class="photo-card-img-wrap"
+      (click)="openPhoto(photo)">
+
+      <img
+        [src]="photo.url"
+        [alt]="photo.name">
+
+    </div>
+
+
+    <div class="photo-card-body">
+
+      <div class="photo-card-title">
+        {{ photo.name }}
+      </div>
+
+
+      <div class="photo-card-meta">
+
+        <span class="font-bold text-primary">
+
+          {{ photo.customerName }}
+          ({{ photo.customerId }})
+
+        </span>
+
+      </div>
+
+
+      <div class="photo-card-meta">
+
+        <span>
+          Size: {{ photo.frameSize }}
+        </span>
+
+
+        <span
+          class="badge"
+          [class.badge-completed]="
+            photo.orderStatus === 'Completed'
+          "
+          [class.badge-pending]="
+            photo.orderStatus !== 'Completed'
+          ">
+
+          {{ photo.orderStatus }}
+
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- LIST VIEW -->
+
+<div
+  *ngIf="
+    filteredPhotos.length > 0 &&
+    viewMode === 'list'
+  "
+  class="table-card">
+
+  <div class="table-container">
+
+    <table class="data-table">
+
+      <thead>
+
+        <tr>
+
+          <th style="width: 40px;">
+            Select
+          </th>
+
+          <th>
+            Preview
+          </th>
+
+          <th>
+            File Name
+          </th>
+
+          <th>
+            Customer
+          </th>
+
+          <th>
+            Order ID
+          </th>
+
+          <th>
+            Frame Size
+          </th>
+
+          <th>
+            Status
+          </th>
+
+          <th>
+            Actions
+          </th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr
+          *ngFor="
+            let photo of filteredPhotos;
+            trackBy: trackByPhotoId
+          ">
+
+          <td>
+
+            <input
+              type="checkbox"
+              [checked]="isSelected(photo.id)"
+              (change)="toggleSelect(photo.id)">
+
+          </td>
+
+
+          <td>
+
+            <img
+              [src]="photo.url"
+              [alt]="photo.name"
+              style="
+                width: 44px;
+                height: 44px;
+                object-fit: cover;
+                border-radius: var(--radius-xs);
+                cursor: pointer;
+              "
+              (click)="openPhoto(photo)">
+
+          </td>
+
+
+          <td class="font-semibold">
+
+            {{ photo.name }}
+
+          </td>
+
+
+          <td>
+
+            {{ photo.customerName }}
+
+          </td>
+
+
+          <td class="font-bold text-primary">
+
+            {{ photo.customerId }}
+
+          </td>
+
+
+          <td>
+
+            {{ photo.frameSize }}
+
+          </td>
+
+
+          <td>
+
+            <span
+              class="badge"
+              [class.badge-completed]="
+                photo.orderStatus === 'Completed'
+              "
+              [class.badge-pending]="
+                photo.orderStatus !== 'Completed'
+              ">
+
+              {{ photo.orderStatus }}
+
+            </span>
+
+          </td>
+
+
+          <td>
+
+            <button
+              class="action-btn"
+              title="View Fullscreen"
+              (click)="openPhoto(photo)">
+
+              <i class="fa-solid fa-expand"></i>
+
+            </button>
+
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>

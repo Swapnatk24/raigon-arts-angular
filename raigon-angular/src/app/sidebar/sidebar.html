@@ -1,0 +1,200 @@
+<!-- SIDEBAR -->
+<aside
+  class="sidebar"
+  [class.collapsed]="sidebarCollapsed">
+
+  <!-- SIDEBAR HEADER -->
+  <div
+    class="sidebar-header"
+    (click)="toggleSidebar()">
+
+    <div class="brand-logo">
+
+      <div class="brand-icon">
+        <img
+          src="assets/images/img2.png"
+          alt="Raigon Arts Logo">
+      </div>
+
+      <div class="brand-text">
+        <h2>Raigon Arts</h2>
+        <span>Management System</span>
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      class="sidebar-toggle"
+      (click)="$event.stopPropagation(); toggleSidebar()">
+
+      <i
+        class="fa-solid"
+        [class.fa-angle-left]="!sidebarCollapsed"
+        [class.fa-angle-right]="sidebarCollapsed">
+      </i>
+
+    </button>
+
+  </div>
+
+
+  <!-- NAVIGATION -->
+  <nav class="sidebar-nav">
+
+    <!-- Dashboard -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'dashboard'"
+      (click)="navigate('dashboard')">
+
+      <i class="fa-solid fa-gauge-high"></i>
+
+      <span class="nav-text">
+        Dashboard
+      </span>
+
+    </a>
+
+
+    <!-- Customers -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'customers'"
+      (click)="navigate('customers')">
+
+      <i class="fa-solid fa-users"></i>
+
+      <span class="nav-text">
+        Customers
+      </span>
+
+    </a>
+
+
+    <!-- Add New Customer -->
+    <a
+      class="nav-item"
+      (click)="openAddCustomer()">
+
+      <i class="fa-solid fa-user-plus"></i>
+
+      <span class="nav-text">
+        Add New Customer
+      </span>
+
+    </a>
+
+
+    <!-- Orders -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'orders'"
+      (click)="navigate('orders')">
+
+      <i class="fa-solid fa-cart-shopping"></i>
+
+      <span class="nav-text">
+        Orders
+      </span>
+
+    </a>
+
+
+    <!-- Photo Collection -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'photos'"
+      (click)="navigate('photos')">
+
+      <i class="fa-solid fa-images"></i>
+
+      <span class="nav-text">
+        Photo Collection
+      </span>
+
+    </a>
+
+
+    <!-- Frame Sizes -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'frames'"
+      (click)="navigate('frames')">
+
+      <i class="fa-solid fa-ruler-combined"></i>
+
+      <span class="nav-text">
+        Frame Sizes
+      </span>
+
+    </a>
+
+
+    <!-- Categories -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'categories'"
+      (click)="navigate('categories')">
+
+      <i class="fa-solid fa-layer-group"></i>
+
+      <span class="nav-text">
+        Categories
+      </span>
+
+    </a>
+
+
+    <!-- Reports -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'reports'"
+      (click)="navigate('reports')">
+
+      <i class="fa-solid fa-chart-column"></i>
+
+      <span class="nav-text">
+        Reports
+      </span>
+
+    </a>
+
+
+    <!-- Settings -->
+    <a
+      class="nav-item"
+      [class.active]="currentView === 'settings'"
+      (click)="navigate('settings')">
+
+      <i class="fa-solid fa-gear"></i>
+
+      <span class="nav-text">
+        Settings
+      </span>
+
+    </a>
+
+  </nav>
+
+
+  <!-- SIDEBAR FOOTER -->
+  <div class="sidebar-footer">
+
+    <!-- Logout -->
+    <a
+      class="nav-item logout-item"
+      (click)="logout()">
+
+      <i class="fa-solid fa-right-from-bracket"></i>
+
+      <span class="nav-text">
+        Logout
+      </span>
+
+    </a>
+
+  </div>
+
+</aside>
+
