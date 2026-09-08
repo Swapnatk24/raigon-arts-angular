@@ -1,0 +1,404 @@
+<div class="login-view">
+
+  <div class="login-bg-glow glow-1"></div>
+  <div class="login-bg-glow glow-2"></div>
+  <div class="login-bg-grid"></div>
+
+  <div class="login-card-container">
+
+    <!-- LEFT SIDE -->
+
+    <div class="login-banner">
+
+      <div class="login-banner-content">
+
+      </div>
+
+    </div>
+
+
+    <!-- RIGHT SIDE -->
+
+    <div class="login-form-area">
+
+      @if (!forgotPassword) {
+
+        <div class="login-form-content">
+
+          <div class="login-form-header">
+
+            <div class="login-form-icon-wrap">
+              
+            <i class="fa-solid fa-shield-halved"></i>
+            </div>
+
+            <div>
+              <h2 class="login-form-title">
+                Welcome Back
+              </h2>
+
+              <p class="login-form-subtitle">
+                Please sign in to access your workshop dashboard.
+              </p>
+            </div>
+
+          </div>
+
+
+          <form
+            class="login-form"
+            (ngSubmit)="login()">
+
+            <div class="form-group-custom">
+
+              <label class="form-label-custom">
+                Phone Number / Username
+              </label>
+
+              <div class="input-with-icon">
+
+                <i class="fa-solid fa-user input-icon"></i>
+
+                <input
+                  type="text"
+                  class="form-input-custom"
+                  placeholder="admin"
+                  [(ngModel)]="username"
+                  name="username"
+                  required>
+
+              </div>
+
+            </div>
+
+
+            <div class="form-group-custom">
+
+              <label class="form-label-custom">
+                Password
+              </label>
+
+              <div class="input-with-icon">
+
+                <i class="fa-solid fa-lock input-icon"></i>
+
+                <input
+                  [type]="showPassword ? 'text' : 'password'"
+                  class="form-input-custom"
+                  placeholder="••••••••"
+                  [(ngModel)]="password"
+                  name="password"
+                  required>
+
+                <button
+                  type="button"
+                  class="password-toggle-btn"
+                  (click)="togglePassword()">
+
+                  <i
+                    class="fa-solid"
+                    [class.fa-eye]="!showPassword"
+                    [class.fa-eye-slash]="showPassword">
+                  </i>
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="login-form-options">
+
+              <button
+                type="button"
+                class="forgot-password-link"
+                (click)="showForgotPassword()">
+
+                Forgot Password?
+
+              </button>
+
+            </div>
+
+
+            <button type="submit" class="login-btn-primary" (click)="login()">
+
+              <span>
+                Sign In to Workshop
+              </span>
+
+              <i class="fa-solid fa-arrow-right-to-bracket login-btn-icon"></i>
+
+            </button>
+
+          </form>
+
+        </div>
+
+      }
+
+
+      @if (forgotPassword) {
+
+        <div class="login-form-content">
+
+          <!-- STEP 1 -->
+
+          @if (forgotStep === 1) {
+
+            <div class="login-form-header">
+
+              <div class="login-form-icon-wrap">
+                <i class="fa-brands fa-whatsapp"></i>
+              </div>
+
+              <div>
+
+                <h2 class="login-form-title">
+                  Forgot Password?
+                </h2>
+
+                <p class="login-form-subtitle">
+                  OTP will be sent to your registered phone.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <form
+              class="login-form"
+              (ngSubmit)="sendOtp()">
+
+              <div class="form-group-custom">
+
+                <label class="form-label-custom">
+                  Registered Phone Number
+                </label>
+
+                <div class="input-with-icon">
+
+                  <i class="fa-solid fa-mobile-screen-button input-icon"></i>
+
+                  <input
+                    type="tel"
+                    class="form-input-custom"
+                    value="+91 8921348433"
+                    readonly>
+
+                </div>
+
+              </div>
+
+
+              <button
+                type="submit"
+                class="login-btn-primary">
+
+                <i class="fa-brands fa-whatsapp"></i>
+
+                Send OTP
+
+              </button>
+
+
+              <div class="login-form-options">
+
+                <button
+                  type="button"
+                  class="forgot-password-link"
+                  (click)="showLogin()">
+
+                  ← Back to Sign In
+
+                </button>
+
+              </div>
+
+            </form>
+
+          }
+
+
+          <!-- STEP 2 -->
+
+          @if (forgotStep === 2) {
+
+            <div class="login-form-header">
+
+              <div class="login-form-icon-wrap">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+
+              <div>
+
+                <h2 class="login-form-title">
+                  Enter WhatsApp OTP
+                </h2>
+
+                <p class="login-form-subtitle">
+                  Enter the verification code.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <form
+              class="login-form"
+              (ngSubmit)="verifyOtp()">
+
+              <div class="form-group-custom">
+
+                <label class="form-label-custom">
+                  4-Digit Verification Code
+                </label>
+
+                <div class="input-with-icon">
+
+                  <i class="fa-solid fa-key input-icon"></i>
+
+                  <input
+                    type="text"
+                    class="form-input-custom"
+                    maxlength="4"
+                    [(ngModel)]="enteredOtp"
+                    name="otp"
+                    required>
+
+                </div>
+
+              </div>
+
+
+              <p class="text-sm text-muted">
+                Resend code in {{ otpTimer }} seconds
+              </p>
+
+
+              <button
+                type="submit"
+                class="login-btn-primary">
+
+                Verify OTP & Continue
+
+              </button>
+
+
+              <div class="login-form-options">
+
+                <button
+                  type="button"
+                  class="forgot-password-link"
+                  (click)="showLogin()">
+
+                  ← Back to Sign In
+
+                </button>
+
+              </div>
+
+            </form>
+
+          }
+
+
+          <!-- STEP 3 -->
+
+          @if (forgotStep === 3) {
+
+            <div class="login-form-header">
+
+              <div class="login-form-icon-wrap">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+
+              <div>
+
+                <h2 class="login-form-title">
+                  Create New Password
+                </h2>
+
+                <p class="login-form-subtitle">
+                  Set a new password.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <form
+              class="login-form"
+              (ngSubmit)="savePassword()">
+
+              <div class="form-group-custom">
+
+                <label class="form-label-custom">
+                  New Password
+                </label>
+
+                <input
+                  type="password"
+                  class="form-input-custom"
+                  [(ngModel)]="newPassword"
+                  name="newPassword"
+                  required>
+
+              </div>
+
+
+              <div class="form-group-custom">
+
+                <label class="form-label-custom">
+                  Confirm New Password
+                </label>
+
+                <input
+                  type="password"
+                  class="form-input-custom"
+                  [(ngModel)]="confirmPassword"
+                  name="confirmPassword"
+                  required>
+
+              </div>
+
+
+              <button
+                type="submit"
+                class="login-btn-primary">
+
+                Save New Password
+
+              </button>
+
+
+              <div class="login-form-options">
+
+                <button
+                  type="button"
+                  class="forgot-password-link"
+                  (click)="showLogin()">
+
+                  ← Back to Sign In
+
+                </button>
+
+              </div>
+
+            </form>
+
+          }
+
+        </div>
+
+      }
+
+    </div>
+
+  </div>
+
+</div>

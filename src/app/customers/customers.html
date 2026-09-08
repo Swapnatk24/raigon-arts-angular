@@ -1,0 +1,191 @@
+<div class="page-header">
+
+  <div>
+
+
+<h1 class="page-title">
+  Customer Management
+</h1>
+
+<p class="page-subtitle">
+  Manage customer profiles, photo framing requirements and orders
+</p>
+
+
+  </div>
+
+<button
+class="btn btn-primary"
+(click)="openCustomerModal()">
+
+
+<i class="fa-solid fa-user-plus"></i>
+
+Add New Customer
+
+
+  </button>
+
+</div>
+
+<div class="table-card">
+
+  <div class="table-toolbar">
+
+
+<div class="toolbar-left">
+
+  <div class="table-search">
+
+    <i class="fa-solid fa-magnifying-glass"></i>
+
+    <input
+      type="text"
+      placeholder="Search customer name, phone..."
+      [(ngModel)]="searchQuery">
+
+  </div>
+
+</div>
+
+
+<div class="toolbar-right">
+
+  <span class="text-sm text-muted">
+
+    Total:
+
+    <strong>
+      {{ filteredCustomers.length }}
+    </strong>
+
+  </span>
+
+</div>
+
+
+  </div>
+
+  <div class="table-container">
+
+
+<table class="data-table">
+
+  <thead>
+
+    <tr>
+
+      <th>Order ID</th>
+      <th>Customer</th>
+      <th>Phone</th>
+      <th>City</th>
+      <th>Frame Size</th>
+      <th>Qty</th>
+      <th>Amount</th>
+      <th>Payment</th>
+      <th>Status</th>
+      <th>Actions</th>
+
+    </tr>
+
+  </thead>
+
+
+  <tbody>
+
+    @for (
+      customer of filteredCustomers;
+      track customer.id
+    ) {
+
+      <tr>
+
+        <td class="font-bold text-primary">
+          {{ customer.id }}
+        </td>
+
+
+        <td class="font-semibold">
+          {{ customer.name }}
+        </td>
+
+
+        <td>
+          {{ customer.phone }}
+        </td>
+
+
+        <td>
+          {{ customer.city }}
+        </td>
+
+
+        <td>
+          {{ customer.frameSize }}
+        </td>
+
+
+        <td>
+          {{ customer.quantity }}
+        </td>
+
+
+        <td class="font-bold">
+          ₹{{ customer.totalAmount | number }}
+        </td>
+
+
+        <td>
+
+          <span class="badge badge-completed">
+            {{ customer.paymentStatus }}
+          </span>
+
+        </td>
+
+
+        <td>
+
+          <span class="badge badge-pending">
+            {{ customer.orderStatus }}
+          </span>
+
+        </td>
+
+
+        <td>
+
+          <div class="table-actions">
+
+            <button
+              class="action-btn edit">
+
+              <i class="fa-solid fa-pen-to-square"></i>
+
+            </button>
+
+
+            <button
+              class="action-btn delete"
+              (click)="deleteCustomer(customer.id)">
+
+              <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    }
+
+  </tbody>
+
+</table>
+
+
+  </div>
+
+</div>

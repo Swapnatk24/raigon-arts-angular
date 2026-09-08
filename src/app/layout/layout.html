@@ -1,0 +1,357 @@
+
+<div
+  class="app-container"
+  [class.sidebar-collapsed]="sidebarCollapsed">
+
+
+  <!-- ========================================= -->
+  <!-- SIDEBAR -->
+  <!-- ========================================= -->
+
+  <aside
+    class="sidebar"
+    [class.collapsed]="sidebarCollapsed">
+
+    <!-- Sidebar Header -->
+    <div
+      class="sidebar-header"
+      (click)="toggleSidebar()">
+
+      <div class="brand-logo">
+
+        <div class="brand-icon">
+
+          <img
+            src="assets/images/img2.png"
+            alt="Raigon Arts Logo">
+
+        </div>
+
+        <div class="brand-text">
+
+          <span class="brand-title">
+            RAIGON ARTS
+          </span>
+
+          <span class="brand-subtitle">
+            PHOTO FRAMES
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="sidebar-toggle-btn"
+        (click)="$event.stopPropagation(); toggleSidebar()">
+
+        <i class="fa-solid fa-bars-staggered"></i>
+
+      </button>
+
+    </div>
+
+
+    <!-- ========================================= -->
+    <!-- NAVIGATION -->
+    <!-- ========================================= -->
+
+    <nav class="sidebar-nav">
+
+
+      <!-- Dashboard -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'dashboard'"
+        (click)="navigate('dashboard')">
+
+        <i class="fa-solid fa-chart-pie"></i>
+
+        <span class="nav-text">
+          Dashboard
+        </span>
+
+      </a>
+
+
+      <!-- Customers -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'customers'"
+        (click)="navigate('customers')">
+
+        <i class="fa-solid fa-users"></i>
+
+        <span class="nav-text">
+          Customers
+        </span>
+
+      </a>
+
+
+      <!-- Add New Customer -->
+      <a
+        class="nav-item"
+        (click)="openAddCustomer()">
+
+        <i class="fa-solid fa-user-plus"></i>
+
+        <span class="nav-text">
+          Add New Customer
+        </span>
+
+      </a>
+
+
+      <!-- Orders -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'orders'"
+        (click)="navigate('orders')">
+
+        <i class="fa-solid fa-boxes-packing"></i>
+
+        <span class="nav-text">
+          Orders
+        </span>
+
+      </a>
+
+
+      <!-- Photo Collection -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'photos'"
+        (click)="navigate('photos')">
+
+        <i class="fa-solid fa-photo-film"></i>
+
+        <span class="nav-text">
+          Photo Collection
+        </span>
+
+      </a>
+
+
+      <!-- Frame Sizes -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'frames'"
+        (click)="navigate('frames')">
+
+        <i class="fa-solid fa-ruler-combined"></i>
+
+        <span class="nav-text">
+          Frame Sizes
+        </span>
+
+      </a>
+
+
+      <!-- Reports -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'reports'"
+        (click)="navigate('reports')">
+
+        <i class="fa-solid fa-chart-column"></i>
+
+        <span class="nav-text">
+          Reports
+        </span>
+
+      </a>
+
+
+      <!-- Settings -->
+      <a
+        class="nav-item"
+        [class.active]="currentView === 'settings'"
+        (click)="navigate('settings')">
+
+        <i class="fa-solid fa-sliders"></i>
+
+        <span class="nav-text">
+          Settings
+        </span>
+
+      </a>
+
+    </nav>
+
+
+    <!-- ========================================= -->
+    <!-- LOGOUT -->
+    <!-- ========================================= -->
+
+    <div class="sidebar-footer">
+
+      <a
+        class="nav-item logout-nav-item"
+        (click)="logout()">
+
+        <i class="fa-solid fa-power-off"></i>
+
+        <span class="nav-text">
+          Logout
+        </span>
+
+      </a>
+
+    </div>
+
+  </aside>
+
+
+  <!-- ========================================= -->
+  <!-- MAIN -->
+  <!-- ========================================= -->
+
+  <div class="main-wrapper">
+
+
+    <!-- ========================================= -->
+    <!-- TOP HEADER -->
+    <!-- ========================================= -->
+
+    <header class="top-header">
+
+      <div class="header-search">
+
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+        <input
+          type="text"
+          id="globalSearchInput"
+          placeholder="Quick search customers, orders, photos...">
+
+      </div>
+
+
+      <div class="header-actions">
+
+
+        <!-- Theme -->
+        <button
+          type="button"
+          class="btn-icon theme-toggle-btn"
+          title="Switch Theme Mode"
+          (click)="toggleThemeMode()">
+
+          <i class="fa-solid fa-moon"></i>
+
+        </button>
+
+
+        <!-- Notifications -->
+        <button
+          type="button"
+          class="btn-icon notification-btn"
+          title="Notifications"
+          (click)="toggleNotifications($event)">
+
+          <i class="fa-solid fa-bell"></i>
+
+          <span class="notification-indicator"></span>
+
+        </button>
+
+
+        <!-- User -->
+        <div
+          class="user-avatar"
+          style="width: 38px; height: 38px; cursor: pointer;"
+          (click)="goToSettings()">
+
+          RA
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <!-- ========================================= -->
+    <!-- CONTENT -->
+    <!-- ========================================= -->
+
+    <main class="content-body">
+
+      @switch (currentView) {
+
+
+        <!-- Dashboard -->
+        @case ('dashboard') {
+
+          <app-dashboard></app-dashboard>
+
+        }
+
+
+        <!-- Customers -->
+        @case ('customers') {
+
+          <app-customers></app-customers>
+
+        }
+
+
+        <!-- Orders -->
+        @case ('orders') {
+
+          <app-orders></app-orders>
+
+        }
+
+
+        <!-- Photos -->
+        @case ('photos') {
+
+          <app-photos></app-photos>
+
+        }
+
+
+        <!-- Frames -->
+        @case ('frames') {
+
+          <app-frames></app-frames>
+
+        }
+
+
+        <!-- Reports -->
+        @case ('reports') {
+
+          <app-reports></app-reports>
+
+        }
+
+
+        <!-- Settings -->
+        @case ('settings') {
+
+          <app-settings></app-settings>
+
+        }
+
+      }
+
+    </main>
+
+  </div>
+
+</div>
+
+
+<!-- ========================================= -->
+<!-- GLOBAL COMPONENTS -->
+<!-- ========================================= -->
+
+<app-toast></app-toast>
+
+
+

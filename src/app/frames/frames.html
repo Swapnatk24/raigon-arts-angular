@@ -1,0 +1,426 @@
+<div class="page-header">
+
+  <div>
+    <h1 class="page-title">Frame Size Management</h1>
+
+    <p class="page-subtitle">
+      Catalog of wholesale frame dimensions, moulding sizes, and custom cut specs
+    </p>
+  </div>
+
+  <button
+    class="btn btn-primary"
+    type="button"
+    (click)="openFrameModal()">
+
+    <i class="fa-solid fa-plus"></i>
+    Add Frame Size
+
+  </button>
+
+</div>
+
+
+<div class="table-card">
+
+  <div class="table-toolbar">
+
+    <div class="toolbar-left">
+
+      <div class="table-search">
+
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+        <input
+          type="text"
+          placeholder="Search size name, category..."
+          [value]="searchQuery"
+          (input)="handleSearch($any($event.target).value)">
+
+      </div>
+
+    </div>
+
+
+    <div class="toolbar-right">
+
+      <span class="text-sm text-muted">
+
+        Total Sizes:
+        <strong>{{ frameSizes.length }}</strong>
+
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <div class="table-container">
+
+    <table class="data-table">
+
+      <thead>
+
+        <tr>
+          <th>Size Code</th>
+          <th>Size Name</th>
+          <th>Width</th>
+          <th>Height</th>
+          <th>Unit</th>
+          <th>Category</th>
+          <th>Orders Count</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        @if (filtered.length === 0) {
+
+          <tr>
+
+            <td
+              colspan="9"
+              style="text-align: center; padding: 40px; color: var(--text-muted);">
+
+              No frame sizes match your search query.
+
+            </td>
+
+          </tr>
+
+        } @else {
+
+          @for (s of filtered; track s.id) {
+
+            <tr>
+
+              <td class="font-bold text-primary">
+                {{ s.id }}
+              </td>
+
+              <td class="font-bold">
+                {{ s.name }}
+              </td>
+
+              <td>
+                {{ s.width }}
+              </td>
+
+              <td>
+                {{ s.height }}
+              </td>
+
+              <td>
+
+                <span
+                  class="badge text-xs"
+                  style="background: var(--bg-surface-subtle);">
+
+                  {{ s.unit }}
+
+                </span>
+
+              </td>
+
+              <td>
+                {{ s.category }}
+              </td>
+
+              <td class="font-semibold">
+                {{ s.usageCount || 0 }} orders
+              </td>
+
+              <td>
+
+                <span class="badge badge-completed">
+                  {{ s.status || 'Active' }}
+                </span>
+
+              </td>
+
+              <td>
+
+                <div class="table-actions">
+
+                  <!-- EDIT -->
+
+                  <button
+                    type="button"
+                    class="action-btn edit"
+                    title="Edit Frame Size"
+                    (click)="openFrameModal(s.id)">
+
+                    <i class="fa-solid fa-pen-to-square"></i>
+
+                  </button>
+
+
+                  <!-- DELETE -->
+
+                  <button
+                    type="button"
+                    class="action-btn delete"
+                    title="Delete Size"
+                    (click)="confirmDelete(s.id, s.name)">
+
+                    <i class="fa-solid fa-trash"></i>
+
+                  </button>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          }
+
+        }
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- FRAME SIZE ADD / EDIT MODAL -->
+<!-- ===================================================== -->
+
+<div
+  class="modal-overlay"
+  *ngIf="showFrameModal"
+  (click)="closeFrameModal()">
+
+
+  <div
+    class="modal-content"
+    (click)="$event.stopPropagation()">
+
+
+    <!-- ================================================= -->
+    <!-- MODAL HEADER -->
+    <!-- ================================================= -->
+
+    <div class="modal-header">
+
+      <div>
+
+        <h2>
+          {{ frameSizeModalTitle }}
+        </h2>
+
+        <p>
+          Add or update frame size details.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="modal-close"
+        (click)="closeFrameModal()">
+
+        <i class="fa-solid fa-xmark"></i>
+
+      </button>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- MODAL BODY -->
+    <!-- ================================================= -->
+
+    <div class="modal-body">
+
+
+      <!-- SIZE NAME -->
+
+      <div class="form-group">
+
+        <label>
+          Size Name
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="formSizeName"
+          placeholder="Enter size name"
+          (blur)="validateForm()">
+
+
+        <small
+          class="text-danger"
+          *ngIf="sizeNameError">
+
+          {{ sizeNameError }}
+
+        </small>
+
+      </div>
+
+
+      <!-- WIDTH -->
+
+      <div class="form-group">
+
+        <label>
+          Width
+        </label>
+
+        <input
+          type="number"
+          [(ngModel)]="formSizeWidth"
+          min="0"
+          step="0.01"
+          placeholder="Enter width"
+          (blur)="validateForm()">
+
+
+        <small
+          class="text-danger"
+          *ngIf="widthError">
+
+          {{ widthError }}
+
+        </small>
+
+      </div>
+
+
+      <!-- HEIGHT -->
+
+      <div class="form-group">
+
+        <label>
+          Height
+        </label>
+
+        <input
+          type="number"
+          [(ngModel)]="formSizeHeight"
+          min="0"
+          step="0.01"
+          placeholder="Enter height"
+          (blur)="validateForm()">
+
+
+        <small
+          class="text-danger"
+          *ngIf="heightError">
+
+          {{ heightError }}
+
+        </small>
+
+      </div>
+
+
+      <!-- UNIT -->
+
+      <div class="form-group">
+
+        <label>
+          Unit
+        </label>
+
+        <select
+          [(ngModel)]="formSizeUnit">
+
+          <option value="inch">
+            inch
+          </option>
+
+          <option value="cm">
+            cm
+          </option>
+
+          <option value="mm">
+            mm
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- CATEGORY -->
+
+      <div class="form-group">
+
+        <label>
+          Category
+        </label>
+
+        <select
+          [(ngModel)]="formSizeCategory">
+
+          <option value="Standard Photo">
+            Standard Photo
+          </option>
+
+          <option value="Custom">
+            Custom
+          </option>
+
+          <option value="Certificate">
+            Certificate
+          </option>
+
+          <option value="Poster">
+            Poster
+          </option>
+
+          <option value="Canvas">
+            Canvas
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- MODAL FOOTER -->
+    <!-- ================================================= -->
+
+    <div class="modal-footer">
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="closeFrameModal()">
+
+        Cancel
+
+      </button>
+
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="saveFrameSize()">
+
+        <i class="fa-solid fa-plus"></i>
+
+        {{ editingFrameId ? 'Save Changes' : 'Add Frame Size' }}
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
