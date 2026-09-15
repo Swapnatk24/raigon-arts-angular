@@ -15,7 +15,38 @@ class CustomersView {
     this.frameConfigMode = 'same'; // 'same' or 'individual'
   }
 
+  syncStagedPhotosFromDOM() {
+    if (!this.stagedPhotos || !Array.isArray(this.stagedPhotos)) return;
+    this.stagedPhotos.forEach((p, idx) => {
+      const sizeEl = document.getElementById(`photo_frameSize_${idx}`);
+      const unitEl = document.getElementById(`photo_unit_${idx}`);
+      const widthEl = document.getElementById(`photo_customWidth_${idx}`);
+      const heightEl = document.getElementById(`photo_customHeight_${idx}`);
+      const typeEl = document.getElementById(`photo_frameType_${idx}`);
+      const matEl = document.getElementById(`photo_material_${idx}`);
+      const colorEl = document.getElementById(`photo_color_${idx}`);
+      const orientEl = document.getElementById(`photo_orientation_${idx}`);
+      const qtyEl = document.getElementById(`photo_quantity_${idx}`);
+      const notesEl = document.getElementById(`photo_notes_${idx}`);
+
+      if (sizeEl) p.frameSize = sizeEl.value;
+      if (unitEl) p.unit = unitEl.value;
+      if (widthEl) p.customWidth = widthEl.value;
+      if (heightEl) p.customHeight = heightEl.value;
+      if (typeEl) p.frameType = typeEl.value;
+      if (matEl) p.material = matEl.value;
+      if (colorEl) p.color = colorEl.value;
+      if (orientEl) p.orientation = orientEl.value;
+      if (qtyEl) p.quantity = Number(qtyEl.value) || 1;
+      if (notesEl) p.notes = notesEl.value;
+    });
+  }
+
   setFrameConfigMode(mode) {
+    if (this.frameConfigMode === 'individual') {
+      this.syncStagedPhotosFromDOM();
+    }
+
     this.frameConfigMode = mode;
     const sameCard = document.getElementById('configCardSame');
     const indivCard = document.getElementById('configCardIndividual');
@@ -54,10 +85,11 @@ class CustomersView {
     if (!files || !files.length) return;
     const file = files[0];
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       if (this.stagedPhotos[index]) {
+        const compressedUrl = await window.RaigonStorage.compressImageDataUrl(e.target.result);
         this.stagedPhotos[index].name = file.name;
-        this.stagedPhotos[index].url = e.target.result;
+        this.stagedPhotos[index].url = compressedUrl;
         this.stagedPhotos[index].size = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
       }
       this.renderFrameConfigView();
@@ -192,6 +224,10 @@ class CustomersView {
         </div>
       </div>
     `).join('');
+
+    if (window.RaigonSelect2) {
+      window.RaigonSelect2.enhanceAll(container);
+    }
   }
 
   render() {
@@ -357,7 +393,7 @@ class CustomersView {
 
     return `
       <div class="photo-stack" title="${photos.length} photos uploaded">
-        ${slice.map(p => `<img src="${p.url || './assets/images/sample_frame_1.jpg'}" class="photo-thumbnail-sm" alt="Thumbnail">`).join('')}
+        ${slice.map(p => `<img src="${p.url || './assets/images/d1.jpeg'}" class="photo-thumbnail-sm" alt="Thumbnail">`).join('')}
         ${remaining > 0 ? `<div class="photo-more-badge">+${remaining}</div>` : ''}
         <span class="text-xs font-semibold text-muted" style="margin-left: 6px;">(${photos.length})</span>
       </div>
@@ -476,7 +512,7 @@ class CustomersView {
         this.stagedPhotos = cust.photos ? cust.photos.map(p => ({
           id: p.id || `P-${Date.now()}`,
           name: p.name || 'Photo',
-          url: p.url || './assets/images/sample_frame_1.jpg',
+          url: p.url || './assets/images/d1.jpeg',
           size: p.size || '3.2 MB',
           frameSize: p.frameSize || cust.frameSize || '12 × 18 inch',
           unit: p.unit || cust.unit || 'inch',
@@ -487,7 +523,7 @@ class CustomersView {
           color: p.color || cust.color || 'Walnut Brown',
           orientation: p.orientation || cust.orientation || 'Landscape',
           quantity: p.quantity || 1,
-          notes: p.notes || cust.notes || ''
+          notes: p.notes !== undefined ? p.notes : ''
         })) : [];
       }
     } else {
@@ -499,7 +535,7 @@ class CustomersView {
         {
           id: `P-${Date.now()}-1`,
           name: 'Customer_Sample_Photo_01.jpg',
-          url: './assets/images/sample_frame_1.jpg',
+          url: './assets/images/d1.jpeg',
           size: '3.2 MB',
           frameSize: '12 × 18 inch',
           unit: 'inch',
@@ -668,7 +704,11 @@ class CustomersView {
 
         <!-- DIGITAL GALLERY PHOTOS GRID WITH PER-PHOTO SPECS -->
         <div class="col-12" style="margin-top: 10px;">
-          <h4 class="view-card-title"><i class="fa-solid fa-images text-primary"></i> Digital Photo Vault (${cust.photos ? cust.photos.length : 0})</h4>
+          ${cust.frameConfigMode === 'individual' ? `
+            <h4 class="view-card-title"><i class="fa-solid fa-layer-group text-primary"></i> Individual Frame Photo Vault (${cust.photos ? cust.photos.length : 0})</h4>
+          ` : `
+            <h4 class="view-card-title"><i class="fa-solid fa-images text-primary"></i> Digital Photo Vault (${cust.photos ? cust.photos.length : 0})</h4>
+          `}
           
           <div class="view-photo-vault-grid">
             ${(!cust.photos || cust.photos.length === 0) ? `<p class="text-muted" style="padding: 12px; font-size: 13.5px;">No uploaded photos for this order.</p>` : cust.photos.map((p, idx) => `
@@ -689,29 +729,31 @@ class CustomersView {
                   </button>
                 </div>
 
-                <div class="view-photo-card-specs-body">
-                  <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
-                    <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-ruler-combined text-gold" style="color: #000000;"></i> Frame Size:</span>
-                    <span class="info-item-value font-bold" style="color: #000000; font-size: 13.5px;">${p.frameSize || cust.frameSize || '12 × 18 inch'}</span>
-                  </div>
-                  <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
-                    <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-box text-gold" style="color: #000000;"></i> Frame Type & Material:</span>
-                    <span class="info-item-value font-bold" style="color: #000000;">${p.frameType || cust.frameType || 'Wooden'} • ${p.material || cust.material || 'Teak Wood'}</span>
-                  </div>
-                  <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
-                    <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-palette text-gold" style="color: #000000;"></i> Color & Finish:</span>
-                    <span class="info-item-value font-bold" style="color: #000000;">${p.color || cust.color || 'Walnut Brown'}</span>
-                  </div>
-                  <div class="info-item-row" style="padding: 6px 0;">
-                    <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-compass text-gold" style="color: #000000;"></i> Orientation & Qty:</span>
-                    <span class="info-item-value font-bold" style="color: #000000;">${p.orientation || cust.orientation || 'Landscape'} • ${p.quantity || 1} Frame(s)</span>
-                  </div>
-                  ${(p.notes || cust.notes) ? `
-                    <div style="margin-top: 8px; padding: 10px 14px; background: rgba(212, 191, 138, 0.12); border: 1px solid rgba(212, 191, 138, 0.35); border-left: 3.5px solid #D4BF8A; border-radius: 10px; font-size: 12px; color: #000000;">
-                      <strong style="color: #000000;"><i class="fa-solid fa-note-sticky" style="color: #000000; margin-right: 4px;"></i> Notes:</strong> ${p.notes || cust.notes}
+                ${(cust.frameConfigMode === 'individual') ? `
+                  <div class="view-photo-card-specs-body">
+                    <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
+                      <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-ruler-combined text-gold" style="color: #000000;"></i> Frame Size:</span>
+                      <span class="info-item-value font-bold" style="color: #000000; font-size: 13.5px;">${p.frameSize || '12 × 18 inch'}</span>
                     </div>
-                  ` : ''}
-                </div>
+                    <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
+                      <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-box text-gold" style="color: #000000;"></i> Frame Type & Material:</span>
+                      <span class="info-item-value font-bold" style="color: #000000;">${p.frameType || 'Wooden'} • ${p.material || 'Teak Wood'}</span>
+                    </div>
+                    <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
+                      <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-palette text-gold" style="color: #000000;"></i> Color & Finish:</span>
+                      <span class="info-item-value font-bold" style="color: #000000;">${p.color || 'Walnut Brown'}</span>
+                    </div>
+                    <div class="info-item-row" style="padding: 6px 0;">
+                      <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-compass text-gold" style="color: #000000;"></i> Orientation & Qty:</span>
+                      <span class="info-item-value font-bold" style="color: #000000;">${p.orientation || 'Landscape'} • ${p.quantity || 1} Frame(s)</span>
+                    </div>
+                    ${(p.notes && (!cust.notes || p.notes !== cust.notes)) ? `
+                      <div style="margin-top: 8px; padding: 10px 14px; background: rgba(212, 191, 138, 0.12); border: 1px solid rgba(212, 191, 138, 0.35); border-left: 3.5px solid #D4BF8A; border-radius: 10px; font-size: 12px; color: #000000;">
+                        <strong style="color: #000000;"><i class="fa-solid fa-note-sticky" style="color: #000000; margin-right: 4px;"></i> Notes:</strong> ${p.notes}
+                      </div>
+                    ` : ''}
+                  </div>
+                ` : ''}
               </div>
             `).join('')}
           </div>
@@ -792,24 +834,41 @@ class CustomersView {
     const fileArray = Array.from(files);
     let loadedCount = 0;
 
+    if (this.frameConfigMode === 'individual') {
+      this.syncStagedPhotosFromDOM();
+    }
+
+    const defaultSize = document.getElementById('formFrameSize')?.value || '12 × 18 inch';
+    const defaultUnit = document.getElementById('formUnit')?.value || 'inch';
+    const defaultWidth = document.getElementById('formCustomWidth')?.value || '';
+    const defaultHeight = document.getElementById('formCustomHeight')?.value || '';
+    const defaultType = document.getElementById('formFrameType')?.value || 'Wooden Frame';
+    const defaultMaterial = document.getElementById('formFrameMaterial')?.value || 'Teak Wood Moulding';
+    const defaultColor = document.getElementById('formFrameColor')?.value || 'Walnut Brown';
+    const defaultOrient = document.getElementById('formOrientation')?.value || 'Landscape';
+    const defaultQty = Number(document.getElementById('formQuantity')?.value) || 1;
+    const defaultNotes = document.getElementById('formNotes')?.value || '';
+
     fileArray.forEach((file, index) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
+        const compressedUrl = await window.RaigonStorage.compressImageDataUrl(e.target.result);
+
         this.stagedPhotos.push({
           id: `P-${Date.now()}-${index}-${Math.floor(Math.random() * 1000)}`,
           name: file.name,
-          url: e.target.result,
+          url: compressedUrl,
           size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-          frameSize: '12 × 18 inch',
-          unit: 'inch',
-          customWidth: '',
-          customHeight: '',
-          frameType: 'Wooden Frame',
-          material: 'Teak Wood Moulding',
-          color: 'Walnut Brown',
-          orientation: 'Landscape',
-          quantity: 1,
-          notes: ''
+          frameSize: defaultSize,
+          unit: defaultUnit,
+          customWidth: defaultWidth,
+          customHeight: defaultHeight,
+          frameType: defaultType,
+          material: defaultMaterial,
+          color: defaultColor,
+          orientation: defaultOrient,
+          quantity: defaultQty,
+          notes: defaultNotes
         });
         loadedCount++;
         if (loadedCount === fileArray.length) {
@@ -838,6 +897,9 @@ class CustomersView {
   }
 
   removeStagedPhoto(index) {
+    if (this.frameConfigMode === 'individual') {
+      this.syncStagedPhotosFromDOM();
+    }
     this.stagedPhotos.splice(index, 1);
     this.renderFrameConfigView();
   }
@@ -864,15 +926,33 @@ class CustomersView {
     let quantity = Number(document.getElementById('formQuantity').value) || 1;
     let notes = document.getElementById('formNotes').value.trim();
 
-    if (this.frameConfigMode === 'individual' && this.stagedPhotos.length > 0) {
-      const first = this.stagedPhotos[0];
-      frameSize = this.stagedPhotos.length > 1 ? `Multiple (${this.stagedPhotos.length} Items)` : (first.frameSize || '12 × 18 inch');
-      frameType = first.frameType || 'Wooden Frame';
-      material = first.material || 'Teak Wood Moulding';
-      color = first.color || 'Walnut Brown';
-      orientation = first.orientation || 'Landscape';
-      quantity = this.stagedPhotos.reduce((acc, p) => acc + (Number(p.quantity) || 1), 0);
-      notes = this.stagedPhotos.map((p, i) => `Photo #${i + 1} (${p.frameSize || '12×18'}): ${p.notes || 'No extra notes'}`).join(' | ');
+    if (this.frameConfigMode === 'individual') {
+      this.syncStagedPhotosFromDOM();
+      if (this.stagedPhotos.length > 0) {
+        const first = this.stagedPhotos[0];
+        frameSize = this.stagedPhotos.length > 1 ? `Multiple (${this.stagedPhotos.length} Items)` : (first.frameSize || '12 × 18 inch');
+        frameType = first.frameType || 'Wooden Frame';
+        material = first.material || 'Teak Wood Moulding';
+        color = first.color || 'Walnut Brown';
+        orientation = first.orientation || 'Landscape';
+        quantity = this.stagedPhotos.reduce((acc, p) => acc + (Number(p.quantity) || 1), 0);
+        notes = this.stagedPhotos.map((p, i) => `Photo #${i + 1} (${p.frameSize || '12×18'}): ${p.notes || 'No extra notes'}`).join(' | ');
+      }
+    } else {
+      if (this.stagedPhotos && Array.isArray(this.stagedPhotos)) {
+        this.stagedPhotos.forEach(p => {
+          p.frameSize = frameSize;
+          p.unit = unit;
+          p.customWidth = customWidth;
+          p.customHeight = customHeight;
+          p.frameType = frameType;
+          p.material = material;
+          p.color = color;
+          p.orientation = orientation;
+          p.quantity = quantity;
+          p.notes = notes;
+        });
+      }
     }
 
     const customerData = {

@@ -769,11 +769,13 @@
 
 
   <!-- LIGHTBOX PHOTO MODAL -->
-  <div id="lightboxModal" class="modal-overlay lightbox-overlay" onclick="if(event.target === this) window.RaigonModal.close('lightboxModal')">
-    <button type="button" class="lightbox-top-close-btn" onclick="window.RaigonModal.close('lightboxModal')" title="Close Preview (Esc)">
+  <div id="lightboxModal" class="modal-overlay lightbox-overlay"
+    onclick="if(event.target === this) window.RaigonModal.close('lightboxModal')">
+    <button type="button" class="lightbox-top-close-btn" onclick="window.RaigonModal.close('lightboxModal')"
+      title="Close Preview (Esc)">
       <i class="fa-solid fa-xmark"></i> Close Preview
     </button>
-    
+
     <div class="lightbox-modal-card">
       <div class="lightbox-modal-header">
         <div class="flex items-center gap-3">
@@ -781,10 +783,12 @@
           <span id="lightboxTitle" class="lightbox-modal-title">Photo Preview</span>
         </div>
         <div class="flex items-center gap-2">
-          <button id="lightboxDownloadBtn" type="button" class="btn btn-primary btn-sm" style="border-radius: 20px; font-weight: 700; padding: 6px 14px; font-size: 12px;">
+          <button id="lightboxDownloadBtn" type="button" class="btn btn-primary btn-sm"
+            style="border-radius: 20px; font-weight: 700; padding: 6px 14px; font-size: 12px;">
             <i class="fa-solid fa-download"></i> Download
           </button>
-          <button type="button" class="modal-close-btn lightbox-icon-close" onclick="window.RaigonModal.close('lightboxModal')" title="Close">
+          <button type="button" class="modal-close-btn lightbox-icon-close"
+            onclick="window.RaigonModal.close('lightboxModal')" title="Close">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>

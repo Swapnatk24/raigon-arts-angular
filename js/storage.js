@@ -38,11 +38,11 @@ const INITIAL_CUSTOMERS = [
     orientation: 'Landscape',
     quantity: 2,
     photos: [
-      { id: 'P-101', name: 'Family_Portrait_01.jpg', url: './assets/images/sample_frame_1.jpg', size: '3.4 MB' },
-      { id: 'P-102', name: 'Vacation_Beach_02.jpg', url: './assets/images/sample_frame_2.jpg', size: '2.8 MB' },
-      { id: 'P-103', name: 'Studio_Group_03.jpg', url: './assets/images/sample_frame_1.jpg', size: '4.1 MB' },
-      { id: 'P-104', name: 'Heritage_Home_04.jpg', url: './assets/images/sample_frame_2.jpg', size: '3.0 MB' },
-      { id: 'P-105', name: 'Anniversary_05.jpg', url: './assets/images/sample_frame_1.jpg', size: '2.9 MB' }
+      { id: 'P-101', name: 'Family_Portrait_01.jpg', url: './assets/images/d1.jpeg', size: '3.4 MB' },
+      { id: 'P-102', name: 'Vacation_Beach_02.jpg', url: './assets/images/d2.jpeg', size: '2.8 MB' },
+      { id: 'P-103', name: 'Studio_Group_03.jpg', url: './assets/images/d3.jpeg', size: '4.1 MB' },
+      { id: 'P-104', name: 'Heritage_Home_04.jpg', url: './assets/images/d4.jpeg', size: '3.0 MB' },
+      { id: 'P-105', name: 'Anniversary_05.jpg', url: './assets/images/d5.jpeg', size: '2.9 MB' }
     ],
     totalAmount: 4500,
     advancePaid: 2000,
@@ -69,9 +69,9 @@ const INITIAL_CUSTOMERS = [
     orientation: 'Portrait',
     quantity: 1,
     photos: [
-      { id: 'P-106', name: 'Bridal_Portrait.jpg', url: './assets/images/sample_frame_1.jpg', size: '5.2 MB' },
-      { id: 'P-107', name: 'Nikah_Ceremony.jpg', url: './assets/images/sample_frame_2.jpg', size: '4.8 MB' },
-      { id: 'P-108', name: 'Reception_Couple.jpg', url: './assets/images/sample_frame_1.jpg', size: '3.9 MB' }
+      { id: 'P-106', name: 'Bridal_Portrait.jpg', url: './assets/images/d6.jpeg', size: '5.2 MB' },
+      { id: 'P-107', name: 'Nikah_Ceremony.jpg', url: './assets/images/d7.jpeg', size: '4.8 MB' },
+      { id: 'P-108', name: 'Reception_Couple.jpg', url: './assets/images/d8.jpeg', size: '3.9 MB' }
     ],
     totalAmount: 2200,
     advancePaid: 2200,
@@ -98,8 +98,8 @@ const INITIAL_CUSTOMERS = [
     orientation: 'Square',
     quantity: 4,
     photos: [
-      { id: 'P-109', name: 'Landscape_Monochrome.jpg', url: './assets/images/sample_frame_2.jpg', size: '6.1 MB' },
-      { id: 'P-110', name: 'Architecture_Abstract.jpg', url: './assets/images/sample_frame_2.jpg', size: '5.4 MB' }
+      { id: 'P-109', name: 'Landscape_Monochrome.jpg', url: './assets/images/d9.jpeg', size: '6.1 MB' },
+      { id: 'P-110', name: 'Architecture_Abstract.jpg', url: './assets/images/d10.jpeg', size: '5.4 MB' }
     ],
     totalAmount: 12000,
     advancePaid: 3000,
@@ -126,8 +126,8 @@ const INITIAL_CUSTOMERS = [
     orientation: 'Landscape',
     quantity: 1,
     photos: [
-      { id: 'P-111', name: 'Oil_Painting_Scan.jpg', url: './assets/images/sample_frame_1.jpg', size: '8.4 MB' },
-      { id: 'P-112', name: 'Artistic_Abstract.jpg', url: './assets/images/sample_frame_2.jpg', size: '7.1 MB' }
+      { id: 'P-111', name: 'Oil_Painting_Scan.jpg', url: './assets/images/d11.jpeg', size: '8.4 MB' },
+      { id: 'P-112', name: 'Artistic_Abstract.jpg', url: './assets/images/d12.jpeg', size: '7.1 MB' }
     ],
     totalAmount: 6800,
     advancePaid: 6800,
@@ -154,7 +154,7 @@ const INITIAL_CUSTOMERS = [
     orientation: 'Portrait',
     quantity: 3,
     photos: [
-      { id: 'P-113', name: 'Baby_Memories.jpg', url: './assets/images/sample_frame_1.jpg', size: '2.5 MB' }
+      { id: 'P-113', name: 'Baby_Memories.jpg', url: './assets/images/d1.jpeg', size: '2.5 MB' }
     ],
     totalAmount: 3600,
     advancePaid: 0,
@@ -232,11 +232,28 @@ class StorageManager {
       try {
         let currentCust = JSON.parse(localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) || [];
         let updated = false;
+        let pCount = 0;
         currentCust = currentCust.map(c => {
+          let itemUpdated = false;
           if (c.phone && (c.phone.includes('98765') || c.phone.length < 10)) {
-            updated = true;
-            return { ...c, phone: '7902261255' };
+            c.phone = '7902261255';
+            itemUpdated = true;
           }
+          if (c.photos && Array.isArray(c.photos)) {
+            c.photos = c.photos.map(p => {
+              if (p.url && (p.url.includes('sample_frame_1') || p.url.includes('sample_frame_2'))) {
+                itemUpdated = true;
+                const dNum = (pCount % 12) + 1;
+                pCount++;
+                return { ...p, url: `./assets/images/d${dNum}.jpeg` };
+              }
+              if (p.url && p.url.includes('d') && p.url.includes('.jpeg')) {
+                pCount++;
+              }
+              return p;
+            });
+          }
+          if (itemUpdated) updated = true;
           return c;
         });
         if (updated) {
@@ -252,6 +269,48 @@ class StorageManager {
     if (!localStorage.getItem(STORAGE_KEYS.AUTH)) {
       localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify({ isLoggedIn: false, user: 'Admin' }));
     }
+  }
+
+  // --- Image Compression Utility ---
+  compressImageDataUrl(dataUrl, maxDimension = 1000, quality = 0.75) {
+    return new Promise((resolve) => {
+      if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+        return resolve(dataUrl);
+      }
+
+      if (dataUrl.length < 200000) {
+        return resolve(dataUrl);
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => {
+        resolve(dataUrl);
+      };
+      img.src = dataUrl;
+    });
   }
 
   // --- Customers CRUD ---
@@ -287,7 +346,23 @@ class StorageManager {
       customers.unshift(customerData);
     }
 
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+    try {
+      localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
+    } catch (e) {
+      console.warn('LocalStorage save failed, attempting fallback payload compression...', e);
+      const fallbackCustomers = customers.map(c => ({
+        ...c,
+        photos: (c.photos || []).map(p => ({
+          ...p,
+          url: p.url && p.url.length > 300000 ? './assets/images/d1.jpeg' : p.url
+        }))
+      }));
+      try {
+        localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(fallbackCustomers));
+      } catch (e2) {
+        console.error('Critical localStorage quota error:', e2);
+      }
+    }
     return customerData;
   }
 
@@ -343,8 +418,13 @@ class StorageManager {
             customerName: cust.name,
             orderDate: cust.orderDate,
             orderStatus: cust.orderStatus,
-            frameSize: cust.frameSize,
-            frameType: cust.frameType
+            frameSize: photo.frameSize || cust.frameSize || '12 × 18 inch',
+            frameType: photo.frameType || cust.frameType || 'Wooden Frame',
+            material: photo.material || cust.material || 'Teak Wood Moulding',
+            color: photo.color || cust.color || 'Walnut Brown',
+            orientation: photo.orientation || cust.orientation || 'Landscape',
+            quantity: photo.quantity || 1,
+            notes: photo.notes || cust.notes || ''
           });
         });
       }
