@@ -31,7 +31,7 @@ class ModalManager {
 
     document.getElementById('confirmModalTitle').textContent = title;
     document.getElementById('confirmModalMessage').textContent = message;
-    
+
     const confirmBtn = document.getElementById('confirmModalBtn');
     confirmBtn.textContent = confirmText;
     confirmBtn.className = `btn ${confirmClass}`;

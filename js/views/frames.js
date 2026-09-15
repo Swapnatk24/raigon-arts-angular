@@ -121,6 +121,17 @@ class FramesView {
     window.RaigonModal.open('frameSizeModal');
   }
 
+  handleSizeNameInput(val) {
+    if (!val) return;
+    const match = val.match(/(\d+(?:\.\d+)?)\s*[xX×*]\s*(\d+(?:\.\d+)?)/);
+    if (match) {
+      const widthInput = document.getElementById('formSizeWidth');
+      const heightInput = document.getElementById('formSizeHeight');
+      if (widthInput) widthInput.value = match[1];
+      if (heightInput) heightInput.value = match[2];
+    }
+  }
+
   saveFrameSize(e) {
     if (e) e.preventDefault();
 

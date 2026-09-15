@@ -116,7 +116,7 @@ class VuexySelect2 {
     if (isStatusBadge) {
       trigger.className = `vuexy-select2-trigger status-select-badge status-badge-${select.value.toLowerCase()}`;
     }
-    
+
     const labelSpan = document.createElement('span');
     labelSpan.className = 'vuexy-select2-label';
 
@@ -146,10 +146,10 @@ class VuexySelect2 {
     const renderOptions = () => {
       optionsList.innerHTML = '';
       const options = Array.from(select.options);
-      
+
       const selectedOpt = select.options[select.selectedIndex] || options[0];
       labelSpan.textContent = selectedOpt ? selectedOpt.text : 'Select option';
-      
+
       if (isStatusBadge && selectedOpt) {
         const valLower = selectedOpt.value.toLowerCase().replace(/\s+/g, '-');
         trigger.className = `vuexy-select2-trigger status-select-badge status-badge-${valLower}`;
@@ -175,10 +175,10 @@ class VuexySelect2 {
           if (opt.disabled) return;
 
           select.value = opt.value;
-          
+
           // Trigger native change events so existing onchange="..." handlers fire
           select.dispatchEvent(new Event('change', { bubbles: true }));
-          
+
           renderOptions();
           this.closeAll();
         });

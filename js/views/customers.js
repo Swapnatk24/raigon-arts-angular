@@ -493,6 +493,9 @@ class CustomersView {
     } else {
       if (titleEl) titleEl.textContent = 'Add New Customer & Frame Order';
       document.getElementById('formCustId').value = '';
+      document.getElementById('formTotalAmount').value = '';
+      document.getElementById('formAdvancePaid').value = '';
+      document.getElementById('formBalanceAmount').value = '';
       document.getElementById('formOrderDate').value = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
       this.frameConfigMode = 'same';
       this.stagedPhotos = [
@@ -774,11 +777,6 @@ class CustomersView {
       const adv = Number(advanceInput.value) || 0;
       const bal = Math.max(0, tot - adv);
       balanceInput.value = bal;
-
-      const payStatus = document.getElementById('formPaymentStatus');
-      if (bal === 0 && tot > 0) payStatus.value = 'Paid';
-      else if (adv > 0) payStatus.value = 'Partial';
-      else payStatus.value = 'Unpaid';
     };
 
     if (totalInput && advanceInput) {
@@ -945,7 +943,7 @@ Thank you for your framing order with Raigon Arts! Here are your complete order 
 📌 *Order Status:* ${cust.orderStatus || 'Pending'}
 ----------------------------------------
 📍 *Workshop Address:* Main Workshop, MG Road, Trivandrum
-📞 *Contact:* +91 8921348433
+📞 *Contact:* +91 7902261255
 
 Thank you for choosing Raigon Arts! 🙏`;
 

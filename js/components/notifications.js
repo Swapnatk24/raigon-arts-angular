@@ -20,7 +20,7 @@ class VuexyNotifications {
 
   setup() {
     this.createDropdown();
-    
+
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.notification-btn') && !e.target.closest('#notificationDropdown')) {
         this.close();
@@ -83,10 +83,10 @@ class VuexyNotifications {
     const btn = document.querySelector('.notification-btn');
     if (!btn || !this.dropdown) return;
     const rect = btn.getBoundingClientRect();
-    
+
     this.dropdown.style.position = 'fixed';
     this.dropdown.style.top = `${rect.bottom + 8}px`;
-    
+
     const rightMargin = window.innerWidth - rect.right;
     this.dropdown.style.right = `${Math.max(16, rightMargin - 10)}px`;
     this.dropdown.style.zIndex = '999999';
@@ -94,7 +94,7 @@ class VuexyNotifications {
 
   getNotificationsData() {
     const customers = window.RaigonStorage ? window.RaigonStorage.getCustomers() : [];
-    
+
     // 1. Works Completed / Ready for Pickup or Delivery
     const completedOrders = customers.filter(c => c.orderStatus === 'Completed' || c.orderStatus === 'Ready');
 
@@ -107,7 +107,7 @@ class VuexyNotifications {
   updateBadge() {
     const { completedOrders, pendingPayments } = this.getNotificationsData();
     const totalCount = completedOrders.length + pendingPayments.length;
-    
+
     const badge = document.querySelector('.notification-indicator');
     if (badge) {
       if (totalCount > 0) {
@@ -221,7 +221,7 @@ class VuexyNotifications {
       </div>
 
       <div class="notif-footer">
-        <button type="button" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 12.5px; font-weight: 600;" onclick="window.RaigonApp.navigateTo('customers'); window.RaigonNotifications.close();">
+        <button type="button" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 12.5px; font-weight: 600;" onclick="window.RaigonApp.navigateTo('orders'); window.RaigonNotifications.close();">
           View All Workshop Orders <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>

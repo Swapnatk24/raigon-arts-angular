@@ -522,7 +522,6 @@
               <select id="formUnit" class="form-select">
                 <option value="inch">Inch</option>
                 <option value="cm">CM</option>
-                <option value="mm">MM</option>
               </select>
             </div>
 
@@ -609,12 +608,12 @@
 
           <div class="col-4 form-group">
             <label class="form-label">Total Amount (₹)</label>
-            <input type="number" id="formTotalAmount" class="form-input font-bold" placeholder="0" value="2500">
+            <input type="number" id="formTotalAmount" class="form-input font-bold" placeholder="0">
           </div>
 
           <div class="col-4 form-group">
             <label class="form-label">Advance Paid (₹)</label>
-            <input type="number" id="formAdvancePaid" class="form-input font-bold" placeholder="0" value="1000">
+            <input type="number" id="formAdvancePaid" class="form-input font-bold" placeholder="0">
           </div>
 
           <div class="col-4 form-group">
@@ -626,8 +625,9 @@
           <div class="col-6 form-group">
             <label class="form-label">Payment Status</label>
             <select id="formPaymentStatus" class="form-select font-semibold">
+              <option value="" disabled selected>Select Payment Status</option>
               <option value="Unpaid">Unpaid</option>
-              <option value="Partial" selected>Partial</option>
+              <option value="Partial">Partial</option>
               <option value="Paid">Paid</option>
             </select>
           </div>
@@ -635,8 +635,9 @@
           <div class="col-6 form-group">
             <label class="form-label">Order Status</label>
             <select id="formOrderStatus" class="form-select font-semibold">
+              <option value="" disabled selected>Select Order Status</option>
               <option value="Pending">Pending</option>
-              <option value="In Progress" selected>In Progress</option>
+              <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
               <option value="Cancelled">Cancelled</option>
             </select>
@@ -708,7 +709,8 @@
           <input type="hidden" id="formSizeId">
           <div class="form-group" style="margin-bottom: 16px;">
             <label class="form-label">Size Name / Label <span class="required">*</span></label>
-            <input type="text" id="formSizeName" class="form-input" placeholder="e.g. 12 × 18 inch" required>
+            <input type="text" id="formSizeName" class="form-input" placeholder="e.g. 12 * 18 inch"
+              oninput="window.RaigonFramesView.handleSizeNameInput(this.value)" required>
           </div>
           <div class="form-grid" style="margin-bottom: 16px;">
             <div class="col-6 form-group">

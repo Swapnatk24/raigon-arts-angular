@@ -435,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.RaigonApp.init();
 });
 
-window.toggleLoginPasswordVisibility = function() {
+window.toggleLoginPasswordVisibility = function () {
   const pwdInput = document.getElementById('loginPassword');
   const eyeIcon = document.getElementById('togglePasswordIcon');
   if (!pwdInput || !eyeIcon) return;
@@ -450,7 +450,7 @@ window.toggleLoginPasswordVisibility = function() {
   }
 };
 
-window.quickFillLogin = function(email, pass) {
+window.quickFillLogin = function (email, pass) {
   const emailInput = document.getElementById('loginEmail');
   const passInput = document.getElementById('loginPassword');
   if (emailInput) emailInput.value = email;
@@ -458,7 +458,7 @@ window.quickFillLogin = function(email, pass) {
   window.RaigonApp.login();
 };
 
-window.toggleResetNewPasswordVisibility = function(inputId, iconId) {
+window.toggleResetNewPasswordVisibility = function (inputId, iconId) {
   const pwdInput = document.getElementById(inputId);
   const eyeIcon = document.getElementById(iconId);
   if (!pwdInput || !eyeIcon) return;
