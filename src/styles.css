@@ -2429,6 +2429,10 @@ select.status-select-badge[data-vuexy-select2-init="true"] {
   color: #EA5455;
 }
 
+.toast-info .toast-icon {
+  color: #00CFE8;
+}
+
 /* ==========================================================================
    Vuexy Login View Design
    ========================================================================== */
@@ -2921,6 +2925,30 @@ select.status-select-badge[data-vuexy-select2-init="true"] {
 [data-theme="dark"] .table-search input {
   background-color: #2F3349;
   color: #E6E5E8;
+}
+
+/* Dark Mode Hover State Overrides (White Text & Icons) */
+[data-theme="dark"] .nav-item:hover,
+[data-theme="dark"] .nav-item:hover i,
+[data-theme="dark"] .sidebar-toggle-btn:hover,
+[data-theme="dark"] .theme-toggle-btn:hover,
+[data-theme="dark"] .action-btn.edit:hover,
+[data-theme="dark"] .vuexy-select2-option:hover,
+[data-theme="dark"] .password-toggle-btn:hover,
+[data-theme="dark"] .tab-btn:hover,
+[data-theme="dark"] .notif-tab-btn:hover,
+[data-theme="dark"] .page-btn:hover,
+body.dark-mode .nav-item:hover,
+body.dark-mode .nav-item:hover i,
+body.dark-mode .sidebar-toggle-btn:hover,
+body.dark-mode .theme-toggle-btn:hover,
+body.dark-mode .action-btn.edit:hover,
+body.dark-mode .vuexy-select2-option:hover,
+body.dark-mode .password-toggle-btn:hover,
+body.dark-mode .tab-btn:hover,
+body.dark-mode .notif-tab-btn:hover,
+body.dark-mode .page-btn:hover {
+  color: #FFFFFF !important;
 }
 
 /* Compact Layout Density Overrides */

@@ -1,404 +1,247 @@
-<div class="login-view">
-
+﻿<div id="loginView" class="login-view">
+  <!-- Ambient Background Glow Accents -->
   <div class="login-bg-glow glow-1"></div>
   <div class="login-bg-glow glow-2"></div>
   <div class="login-bg-grid"></div>
 
   <div class="login-card-container">
-
-    <!-- LEFT SIDE -->
-
+    <!-- Left Hero Banner -->
     <div class="login-banner">
+      <div class="login-banner-content"></div>
+    </div>
 
-      <div class="login-banner-content">
+    <!-- Right Form Area -->
+    <div class="login-form-area">
+
+      <!-- SIGN IN FORM CONTENT -->
+      <div *ngIf="!forgotPassword" id="loginFormContent" class="login-form-content">
+        <div class="login-form-header">
+          <div class="login-form-icon-wrap">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div>
+            <h2 class="login-form-title">Welcome Back</h2>
+            <p class="login-form-subtitle">Please sign in to access your workshop dashboard.</p>
+          </div>
+        </div>
+
+        <form (ngSubmit)="login($event)" class="login-form">
+          <div class="form-group-custom">
+            <label class="form-label-custom" for="loginEmail">Phone Number / Username</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-user input-icon"></i>
+              <input type="text" id="loginEmail" name="loginEmail" class="form-input-custom"
+                placeholder="admin@raigonarts.com" [(ngModel)]="username" required>
+            </div>
+          </div>
+
+          <div class="form-group-custom">
+            <label class="form-label-custom" for="loginPassword">Password</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input [type]="showPassword ? 'text' : 'password'" id="loginPassword" name="loginPassword"
+                class="form-input-custom" placeholder="••••••••" [(ngModel)]="password" required>
+              <button type="button" class="password-toggle-btn" (click)="togglePassword()"
+                title="Toggle password visibility">
+                <i class="fa-solid" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"
+                  id="togglePasswordIcon">
+                </i>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-form-options">
+            <a href="javascript:void(0)" class="forgot-password-link" (click)="showForgotPassword()">
+              Forgot Password?
+            </a>
+          </div>
+
+          <button type="submit" class="login-btn-primary">
+            <span>Sign In to Workshop</span>
+            <i class="fa-solid fa-arrow-right-to-bracket login-btn-icon"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- RESET / FORGOT PASSWORD FORM CONTENT (3-STEP FLOW) -->
+      <div *ngIf="forgotPassword" id="forgotPasswordContent" class="login-form-content">
+
+        <!-- STEP 1: PHONE NUMBER INPUT (DATABASE SAVED PHONE) -->
+        <div *ngIf="forgotStep === 1" id="forgotStep1" class="forgot-step-container" style="width: 100%;">
+          <div class="login-form-header">
+            <div class="login-form-icon-wrap"
+              style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35);">
+              <i class="fa-brands fa-whatsapp"></i>
+            </div>
+            <div>
+              <h2 class="login-form-title">Forgot Password?</h2>
+              <p class="login-form-subtitle">OTP will be sent to your database registered phone.</p>
+            </div>
+          </div>
+
+          <form (ngSubmit)="sendOtp($event)" class="login-form">
+            <div class="form-group-custom">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label-custom" for="forgotPhone" style="margin-bottom: 0;">Registered Phone
+                  Number</label>
+                <span class="badge"
+                  style="background: rgba(40,199,111,0.12); color: #28C76F; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;">
+                  <i class="fa-solid fa-shield-check"></i> Database Saved
+                </span>
+              </div>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-mobile-screen-button input-icon" style="color: #28C76F;"></i>
+                <input type="tel" id="forgotPhone" name="forgotPhone" class="form-input-custom"
+                  placeholder="+91 7012160065" [(ngModel)]="registeredPhone" readonly
+                  style="background: #F4F3F8; font-weight: 600; cursor: not-allowed;" required>
+              </div>
+            </div>
+
+            <button type="submit" id="btnSendOtp" class="login-btn-primary" [disabled]="isSendingOtp"
+              style="background: linear-gradient(72.47deg, #25D366 0%, #128C7E 100%); box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4);">
+              <ng-container *ngIf="isSendingOtp">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>Sending OTP via WhatsApp...</span>
+              </ng-container>
+              <ng-container *ngIf="!isSendingOtp">
+                <i class="fa-brands fa-whatsapp"></i>
+                <span>Send OTP to Saved Number</span>
+              </ng-container>
+            </button>
+
+            <div style="text-align: center; margin-top: 14px;">
+              <a href="javascript:void(0)" class="forgot-password-link" (click)="showLogin()"
+                style="font-size: 13.5px;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Sign In
+              </a>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 2: OTP VERIFICATION & 80s COUNTDOWN TIMER -->
+        <div *ngIf="forgotStep === 2" id="forgotStep2" class="forgot-step-container" style="width: 100%;">
+          <div class="login-form-header">
+            <div class="login-form-icon-wrap"
+              style="background: linear-gradient(72.47deg, #000000 0%, #D4BF8A 100%); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+              <h2 class="login-form-title">Enter WhatsApp OTP</h2>
+              <p class="login-form-subtitle">We sent a 4-digit code to <strong id="displayPhoneFormatted"
+                  style="color: #000000;">{{ registeredPhone }}</strong></p>
+            </div>
+          </div>
+
+          <form (ngSubmit)="verifyForgotPasswordOTP($event)" class="login-form">
+            <div class="form-group-custom">
+              <label class="form-label-custom" for="forgotOtpCode">4-Digit Verification Code <span
+                  class="required">*</span></label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-key input-icon"></i>
+                <input type="text" id="forgotOtpCode" name="forgotOtpCode" class="form-input-custom"
+                  placeholder="Enter 4-digit OTP (e.g. 4829)" maxlength="6" [(ngModel)]="enteredOtp"
+                  style="letter-spacing: 4px; font-weight: 700; font-size: 16px;" required>
+              </div>
+            </div>
+
+            <!-- COUNTDOWN TIMER CONTAINER -->
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; margin-top: -4px; margin-bottom: 12px; padding: 10px 14px; background: rgba(212,191,138,0.12); border-radius: 8px; border: 1px solid rgba(212,191,138,0.3);">
+              <div
+                style="font-size: 12.5px; font-weight: 600; color: #222222; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-regular fa-clock" style="color: #000000;"></i>
+                <span id="otpTimerText">Resend code in <strong id="otpCountdownTimer" style="color: #D4BF8A;">{{
+                    timerDisplay }}</strong></span>
+              </div>
+              <button type="button" id="btnResendOtp" [disabled]="timerSeconds > 0" (click)="resendOTP()"
+                [style.color]="timerSeconds > 0 ? '#A5A2B0' : '#D4BF8A'"
+                [style.cursor]="timerSeconds > 0 ? 'not-allowed' : 'pointer'"
+                style="background: none; border: none; font-size: 12.5px; font-weight: 700; transition: all 0.2s ease;">
+                <i class="fa-solid fa-rotate-right"></i> Resend OTP
+              </button>
+            </div>
+
+            <button type="submit" id="btnVerifyOtp" class="login-btn-primary">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Verify OTP & Continue</span>
+            </button>
+
+            <div style="text-align: center; margin-top: 14px; font-size: 13px;">
+              <a href="javascript:void(0)" class="forgot-password-link" (click)="showLogin()">
+                <i class="fa-solid fa-arrow-left"></i> Back to Sign In
+              </a>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 3: CREATE NEW PASSWORD -->
+        <div *ngIf="forgotStep === 3" id="forgotStep3" class="forgot-step-container" style="width: 100%;">
+          <div class="login-form-header">
+            <div class="login-form-icon-wrap"
+              style="background: linear-gradient(135deg, #28C76F 0%, #1F9D57 100%); box-shadow: 0 6px 18px rgba(40, 199, 111, 0.35);">
+              <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+              <h2 class="login-form-title">Create New Password</h2>
+              <p class="login-form-subtitle">Set a strong new password for your workshop account.</p>
+            </div>
+          </div>
+
+          <form (ngSubmit)="submitNewPassword($event)" class="login-form">
+            <div class="form-group-custom">
+              <label class="form-label-custom" for="resetNewPassword">New Password <span
+                  class="required">*</span></label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-lock input-icon"></i>
+                <input [type]="showNewPassword ? 'text' : 'password'" id="resetNewPassword" name="resetNewPassword"
+                  class="form-input-custom" placeholder="Enter new password (min 6 chars)" [(ngModel)]="newPassword"
+                  required>
+                <button type="button" class="password-toggle-btn" (click)="showNewPassword = !showNewPassword"
+                  title="Toggle password visibility">
+                  <i class="fa-solid" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword"
+                    id="toggleIcon1">
+                  </i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group-custom">
+              <label class="form-label-custom" for="resetConfirmPassword">Confirm New Password <span
+                  class="required">*</span></label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-lock input-icon"></i>
+                <input [type]="showConfirmPassword ? 'text' : 'password'" id="resetConfirmPassword"
+                  name="resetConfirmPassword" class="form-input-custom" placeholder="Re-enter new password"
+                  [(ngModel)]="confirmPassword" required>
+                <button type="button" class="password-toggle-btn" (click)="showConfirmPassword = !showConfirmPassword"
+                  title="Toggle password visibility">
+                  <i class="fa-solid" [class.fa-eye]="!showConfirmPassword" [class.fa-eye-slash]="showConfirmPassword"
+                    id="toggleIcon2">
+                  </i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" id="btnSubmitNewPassword" class="login-btn-primary"
+              style="background: linear-gradient(72.47deg, #28C76F 0%, #1F9D57 100%); box-shadow: 0 4px 14px rgba(40, 199, 111, 0.45);">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Save New Password & Sign In</span>
+            </button>
+
+            <div style="text-align: center; margin-top: 14px;">
+              <a href="javascript:void(0)" class="forgot-password-link" (click)="showLogin()"
+                style="font-size: 13.5px;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Sign In
+              </a>
+            </div>
+          </form>
+        </div>
 
       </div>
 
     </div>
 
-
-    <!-- RIGHT SIDE -->
-
-    <div class="login-form-area">
-
-      @if (!forgotPassword) {
-
-        <div class="login-form-content">
-
-          <div class="login-form-header">
-
-            <div class="login-form-icon-wrap">
-              
-            <i class="fa-solid fa-shield-halved"></i>
-            </div>
-
-            <div>
-              <h2 class="login-form-title">
-                Welcome Back
-              </h2>
-
-              <p class="login-form-subtitle">
-                Please sign in to access your workshop dashboard.
-              </p>
-            </div>
-
-          </div>
-
-
-          <form
-            class="login-form"
-            (ngSubmit)="login()">
-
-            <div class="form-group-custom">
-
-              <label class="form-label-custom">
-                Phone Number / Username
-              </label>
-
-              <div class="input-with-icon">
-
-                <i class="fa-solid fa-user input-icon"></i>
-
-                <input
-                  type="text"
-                  class="form-input-custom"
-                  placeholder="admin"
-                  [(ngModel)]="username"
-                  name="username"
-                  required>
-
-              </div>
-
-            </div>
-
-
-            <div class="form-group-custom">
-
-              <label class="form-label-custom">
-                Password
-              </label>
-
-              <div class="input-with-icon">
-
-                <i class="fa-solid fa-lock input-icon"></i>
-
-                <input
-                  [type]="showPassword ? 'text' : 'password'"
-                  class="form-input-custom"
-                  placeholder="••••••••"
-                  [(ngModel)]="password"
-                  name="password"
-                  required>
-
-                <button
-                  type="button"
-                  class="password-toggle-btn"
-                  (click)="togglePassword()">
-
-                  <i
-                    class="fa-solid"
-                    [class.fa-eye]="!showPassword"
-                    [class.fa-eye-slash]="showPassword">
-                  </i>
-
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <div class="login-form-options">
-
-              <button
-                type="button"
-                class="forgot-password-link"
-                (click)="showForgotPassword()">
-
-                Forgot Password?
-
-              </button>
-
-            </div>
-
-
-            <button type="submit" class="login-btn-primary" (click)="login()">
-
-              <span>
-                Sign In to Workshop
-              </span>
-
-              <i class="fa-solid fa-arrow-right-to-bracket login-btn-icon"></i>
-
-            </button>
-
-          </form>
-
-        </div>
-
-      }
-
-
-      @if (forgotPassword) {
-
-        <div class="login-form-content">
-
-          <!-- STEP 1 -->
-
-          @if (forgotStep === 1) {
-
-            <div class="login-form-header">
-
-              <div class="login-form-icon-wrap">
-                <i class="fa-brands fa-whatsapp"></i>
-              </div>
-
-              <div>
-
-                <h2 class="login-form-title">
-                  Forgot Password?
-                </h2>
-
-                <p class="login-form-subtitle">
-                  OTP will be sent to your registered phone.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <form
-              class="login-form"
-              (ngSubmit)="sendOtp()">
-
-              <div class="form-group-custom">
-
-                <label class="form-label-custom">
-                  Registered Phone Number
-                </label>
-
-                <div class="input-with-icon">
-
-                  <i class="fa-solid fa-mobile-screen-button input-icon"></i>
-
-                  <input
-                    type="tel"
-                    class="form-input-custom"
-                    value="+91 8921348433"
-                    readonly>
-
-                </div>
-
-              </div>
-
-
-              <button
-                type="submit"
-                class="login-btn-primary">
-
-                <i class="fa-brands fa-whatsapp"></i>
-
-                Send OTP
-
-              </button>
-
-
-              <div class="login-form-options">
-
-                <button
-                  type="button"
-                  class="forgot-password-link"
-                  (click)="showLogin()">
-
-                  ← Back to Sign In
-
-                </button>
-
-              </div>
-
-            </form>
-
-          }
-
-
-          <!-- STEP 2 -->
-
-          @if (forgotStep === 2) {
-
-            <div class="login-form-header">
-
-              <div class="login-form-icon-wrap">
-                <i class="fa-solid fa-shield-halved"></i>
-              </div>
-
-              <div>
-
-                <h2 class="login-form-title">
-                  Enter WhatsApp OTP
-                </h2>
-
-                <p class="login-form-subtitle">
-                  Enter the verification code.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <form
-              class="login-form"
-              (ngSubmit)="verifyOtp()">
-
-              <div class="form-group-custom">
-
-                <label class="form-label-custom">
-                  4-Digit Verification Code
-                </label>
-
-                <div class="input-with-icon">
-
-                  <i class="fa-solid fa-key input-icon"></i>
-
-                  <input
-                    type="text"
-                    class="form-input-custom"
-                    maxlength="4"
-                    [(ngModel)]="enteredOtp"
-                    name="otp"
-                    required>
-
-                </div>
-
-              </div>
-
-
-              <p class="text-sm text-muted">
-                Resend code in {{ otpTimer }} seconds
-              </p>
-
-
-              <button
-                type="submit"
-                class="login-btn-primary">
-
-                Verify OTP & Continue
-
-              </button>
-
-
-              <div class="login-form-options">
-
-                <button
-                  type="button"
-                  class="forgot-password-link"
-                  (click)="showLogin()">
-
-                  ← Back to Sign In
-
-                </button>
-
-              </div>
-
-            </form>
-
-          }
-
-
-          <!-- STEP 3 -->
-
-          @if (forgotStep === 3) {
-
-            <div class="login-form-header">
-
-              <div class="login-form-icon-wrap">
-                <i class="fa-solid fa-lock"></i>
-              </div>
-
-              <div>
-
-                <h2 class="login-form-title">
-                  Create New Password
-                </h2>
-
-                <p class="login-form-subtitle">
-                  Set a new password.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <form
-              class="login-form"
-              (ngSubmit)="savePassword()">
-
-              <div class="form-group-custom">
-
-                <label class="form-label-custom">
-                  New Password
-                </label>
-
-                <input
-                  type="password"
-                  class="form-input-custom"
-                  [(ngModel)]="newPassword"
-                  name="newPassword"
-                  required>
-
-              </div>
-
-
-              <div class="form-group-custom">
-
-                <label class="form-label-custom">
-                  Confirm New Password
-                </label>
-
-                <input
-                  type="password"
-                  class="form-input-custom"
-                  [(ngModel)]="confirmPassword"
-                  name="confirmPassword"
-                  required>
-
-              </div>
-
-
-              <button
-                type="submit"
-                class="login-btn-primary">
-
-                Save New Password
-
-              </button>
-
-
-              <div class="login-form-options">
-
-                <button
-                  type="button"
-                  class="forgot-password-link"
-                  (click)="showLogin()">
-
-                  ← Back to Sign In
-
-                </button>
-
-              </div>
-
-            </form>
-
-          }
-
-        </div>
-
-      }
-
-    </div>
-
   </div>
 
+  <app-toast></app-toast>
 </div>

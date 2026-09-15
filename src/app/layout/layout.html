@@ -1,29 +1,20 @@
-
-<div
-  class="app-container"
-  [class.sidebar-collapsed]="sidebarCollapsed">
+<div class="app-container" [class.sidebar-collapsed]="sidebarCollapsed">
 
 
   <!-- ========================================= -->
   <!-- SIDEBAR -->
   <!-- ========================================= -->
 
-  <aside
-    class="sidebar"
-    [class.collapsed]="sidebarCollapsed">
+  <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
 
     <!-- Sidebar Header -->
-    <div
-      class="sidebar-header"
-      (click)="toggleSidebar()">
+    <div class="sidebar-header" (click)="toggleSidebar()">
 
       <div class="brand-logo">
 
         <div class="brand-icon">
 
-          <img
-            src="assets/images/img2.png"
-            alt="Raigon Arts Logo">
+          <img [src]="currentLogo" alt="Raigon Arts Logo">
 
         </div>
 
@@ -42,10 +33,7 @@
       </div>
 
 
-      <button
-        type="button"
-        class="sidebar-toggle-btn"
-        (click)="$event.stopPropagation(); toggleSidebar()">
+      <button type="button" class="sidebar-toggle-btn" (click)="$event.stopPropagation(); toggleSidebar()">
 
         <i class="fa-solid fa-bars-staggered"></i>
 
@@ -62,10 +50,7 @@
 
 
       <!-- Dashboard -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'dashboard'"
-        (click)="navigate('dashboard')">
+      <a class="nav-item" [class.active]="currentView === 'dashboard'" (click)="navigate('dashboard')">
 
         <i class="fa-solid fa-chart-pie"></i>
 
@@ -77,10 +62,7 @@
 
 
       <!-- Customers -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'customers'"
-        (click)="navigate('customers')">
+      <a class="nav-item" [class.active]="currentView === 'customers'" (click)="navigate('customers')">
 
         <i class="fa-solid fa-users"></i>
 
@@ -92,9 +74,7 @@
 
 
       <!-- Add New Customer -->
-      <a
-        class="nav-item"
-        (click)="openAddCustomer()">
+      <a class="nav-item" (click)="openAddCustomer()">
 
         <i class="fa-solid fa-user-plus"></i>
 
@@ -106,10 +86,7 @@
 
 
       <!-- Orders -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'orders'"
-        (click)="navigate('orders')">
+      <a class="nav-item" [class.active]="currentView === 'orders'" (click)="navigate('orders')">
 
         <i class="fa-solid fa-boxes-packing"></i>
 
@@ -121,10 +98,7 @@
 
 
       <!-- Photo Collection -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'photos'"
-        (click)="navigate('photos')">
+      <a class="nav-item" [class.active]="currentView === 'photos'" (click)="navigate('photos')">
 
         <i class="fa-solid fa-photo-film"></i>
 
@@ -136,10 +110,7 @@
 
 
       <!-- Frame Sizes -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'frames'"
-        (click)="navigate('frames')">
+      <a class="nav-item" [class.active]="currentView === 'frames'" (click)="navigate('frames')">
 
         <i class="fa-solid fa-ruler-combined"></i>
 
@@ -151,10 +122,7 @@
 
 
       <!-- Reports -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'reports'"
-        (click)="navigate('reports')">
+      <a class="nav-item" [class.active]="currentView === 'reports'" (click)="navigate('reports')">
 
         <i class="fa-solid fa-chart-column"></i>
 
@@ -166,10 +134,7 @@
 
 
       <!-- Settings -->
-      <a
-        class="nav-item"
-        [class.active]="currentView === 'settings'"
-        (click)="navigate('settings')">
+      <a class="nav-item" [class.active]="currentView === 'settings'" (click)="navigate('settings')">
 
         <i class="fa-solid fa-sliders"></i>
 
@@ -188,9 +153,7 @@
 
     <div class="sidebar-footer">
 
-      <a
-        class="nav-item logout-nav-item"
-        (click)="logout()">
+      <a class="nav-item logout-nav-item" (click)="logout()">
 
         <i class="fa-solid fa-power-off"></i>
 
@@ -222,10 +185,8 @@
 
         <i class="fa-solid fa-magnifying-glass"></i>
 
-        <input
-          type="text"
-          id="globalSearchInput"
-          placeholder="Quick search customers, orders, photos...">
+        <input type="text" id="globalSearchInput" placeholder="Quick search customers, orders, photos..."
+          (input)="onGlobalSearch($event)">
 
       </div>
 
@@ -234,36 +195,19 @@
 
 
         <!-- Theme -->
-        <button
-          type="button"
-          class="btn-icon theme-toggle-btn"
-          title="Switch Theme Mode"
+        <button type="button" class="btn-icon theme-toggle-btn" id="themeToggleBtn"
+          [title]="currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
           (click)="toggleThemeMode()">
-
-          <i class="fa-solid fa-moon"></i>
-
+          <i [class]="currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i>
         </button>
 
 
         <!-- Notifications -->
-        <button
-          type="button"
-          class="btn-icon notification-btn"
-          title="Notifications"
-          (click)="toggleNotifications($event)">
-
-          <i class="fa-solid fa-bell"></i>
-
-          <span class="notification-indicator"></span>
-
-        </button>
+        <app-notification></app-notification>
 
 
         <!-- User -->
-        <div
-          class="user-avatar"
-          style="width: 38px; height: 38px; cursor: pointer;"
-          (click)="goToSettings()">
+        <div class="user-avatar" style="width: 38px; height: 38px; cursor: pointer;" (click)="goToSettings()">
 
           RA
 
@@ -283,60 +227,60 @@
       @switch (currentView) {
 
 
-        <!-- Dashboard -->
-        @case ('dashboard') {
+      <!-- Dashboard -->
+      @case ('dashboard') {
 
-          <app-dashboard></app-dashboard>
+      <app-dashboard (navigate)="navigate($event)"></app-dashboard>
 
-        }
-
-
-        <!-- Customers -->
-        @case ('customers') {
-
-          <app-customers></app-customers>
-
-        }
+      }
 
 
-        <!-- Orders -->
-        @case ('orders') {
+      <!-- Customers -->
+      @case ('customers') {
 
-          <app-orders></app-orders>
+      <app-customers></app-customers>
 
-        }
-
-
-        <!-- Photos -->
-        @case ('photos') {
-
-          <app-photos></app-photos>
-
-        }
+      }
 
 
-        <!-- Frames -->
-        @case ('frames') {
+      <!-- Orders -->
+      @case ('orders') {
 
-          <app-frames></app-frames>
+      <app-orders></app-orders>
 
-        }
-
-
-        <!-- Reports -->
-        @case ('reports') {
-
-          <app-reports></app-reports>
-
-        }
+      }
 
 
-        <!-- Settings -->
-        @case ('settings') {
+      <!-- Photos -->
+      @case ('photos') {
 
-          <app-settings></app-settings>
+      <app-photos></app-photos>
 
-        }
+      }
+
+
+      <!-- Frames -->
+      @case ('frames') {
+
+      <app-frames></app-frames>
+
+      }
+
+
+      <!-- Reports -->
+      @case ('reports') {
+
+      <app-reports></app-reports>
+
+      }
+
+
+      <!-- Settings -->
+      @case ('settings') {
+
+      <app-settings></app-settings>
+
+      }
 
       }
 
@@ -352,6 +296,4 @@
 <!-- ========================================= -->
 
 <app-toast></app-toast>
-
-
-
+<app-modal></app-modal>

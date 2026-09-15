@@ -1227,49 +1227,30 @@
 
 
               <td style="text-align: right;">
-
                 @if ((c.dueBalance ?? 0) > 0) {
-
                   <button
                     class="btn btn-sm btn-primary"
-                    (click)="sendReminder(c.name)">
-
+                    (click)="sendReminder(c.name, c.phone, c.dueBalance || 0)">
                     <i class="fa-brands fa-whatsapp"></i>
                     Remind
-
                   </button>
-
                 } @else {
-
                   <button
                     class="btn btn-sm btn-secondary"
-                    (click)="showSettledMessage()">
-
+                    (click)="showSettledMessage(c.name)">
                     <i class="fa-solid fa-check"></i>
                     Paid
-
                   </button>
-
                 }
-
               </td>
-
             </tr>
-
           }
-
         </tbody>
-
       </table>
-
     </div>
-
   } @else {
-
     <!-- ARCHIVED COMPLETED ORDERS -->
-
     <div class="table-container">
-
       <div
         style="
           margin-bottom: 12px;
@@ -1283,7 +1264,6 @@
           align-items: center;
           gap: 8px;
         ">
-
         <i
           class="fa-solid fa-circle-check"
           style="
@@ -1291,21 +1271,15 @@
             color: #28C76F;
           ">
         </i>
-
         Showing {{ archived7DaysCustomers.length }}
         framing orders completed & delivered >7 days ago.
         Auto-removed from main Customers view,
         permanently preserved in owner reports.
-
       </div>
 
-
       <table class="data-table">
-
         <thead>
-
           <tr>
-
             <th>Archived Customer</th>
             <th>Phone No</th>
             <th>Frame Order Details</th>
@@ -1313,121 +1287,81 @@
             <th>Amount Settled</th>
             <th>Archive Status</th>
             <th style="text-align: right;">Report Record</th>
-
           </tr>
-
         </thead>
 
-
         <tbody>
-
           @for (c of archived7DaysCustomers; track c.id) {
-
             <tr>
-
               <td>
-
                 <div class="customer-avatar-cell">
-
                   <div
                     class="avatar-circle"
                     style="
                       background: #DAF8E6;
                       color: #28C76F;
                     ">
-
                     {{ getInitials(c.name) }}
-
                   </div>
 
-
                   <div>
-
                     <div
                       class="font-bold text-sm"
                       style="color: var(--text-primary);">
-
                       {{ c.name }}
-
                     </div>
 
                     <div class="text-xs text-muted">
                       ID: {{ c.id }}
                     </div>
-
                   </div>
-
                 </div>
-
               </td>
-
 
               <td>
                 {{ c.phone }}
               </td>
 
-
               <td>
-
                 <div class="font-semibold text-sm">
                   {{ c.frameSize || 'Custom Frame' }}
                 </div>
 
                 <div class="text-xs text-muted">
-                  {{ c.material || 'Teak Wood' }}
+                  {{ c.frameMaterial || c.material || 'Teak Wood' }}
                 </div>
-
               </td>
 
-
               <td>
-
                 <span
                   class="text-xs font-semibold"
                   style="color: #28C76F;">
-
                   <i class="fa-solid fa-truck-check"></i>
-
                   {{ c.deliveryDate || 'Completed > 7d ago' }}
-
                 </span>
-
               </td>
-
 
               <td
                 class="font-bold"
                 style="color: #28C76F;">
-
                 ₹{{ (c.totalAmount || 5400) | number:'1.0-0' }}
                 (Paid)
-
               </td>
-
 
               <td>
-
                 <span class="badge badge-completed">
-
                   <i class="fa-solid fa-box-archive"></i>
                   Archived (> 7d)
-
                 </span>
-
               </td>
 
-
               <td style="text-align: right;">
-
                 <button
                   class="btn btn-sm btn-secondary"
-                  (click)="viewHistoricalRecord(c.name)">
-
+                  (click)="viewHistoricalRecord(c)">
                   <i class="fa-solid fa-file-invoice"></i>
                   View Record
-
                 </button>
-
               </td>
 
             </tr>

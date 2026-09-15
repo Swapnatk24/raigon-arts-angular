@@ -1,0 +1,23 @@
+<div class="vuexy-select2-container size-{{ size }}" [class.open]="isOpen" [class.open-above]="isAbove"
+  [class.status-select-badge-wrap]="isStatusBadge">
+
+  <!-- Trigger -->
+  <div #triggerRef class="vuexy-select2-trigger" [class.status-select-badge]="isStatusBadge"
+    [ngClass]="statusBadgeClass" [id]="id" (click)="toggle($event)">
+    <span class="vuexy-select2-label">{{ selectedLabel || placeholder }}</span>
+    <span class="vuexy-select2-arrow">
+      <i class="fa-solid fa-chevron-down"></i>
+    </span>
+  </div>
+
+  <!-- Dropdown Popover Menu -->
+  <div class="vuexy-select2-dropdown vuexy-portal-dropdown" [class.open]="isOpen" [class.open-above]="isAbove"
+    [style.top.px]="top" [style.left.px]="left" [style.width.px]="width" (click)="$event.stopPropagation()">
+    <div class="vuexy-select2-options">
+      <div *ngFor="let opt of normalizedOptions" class="vuexy-select2-option" [class.selected]="opt.value === value"
+        [class.disabled]="opt.disabled" [ngClass]="getOptionClass(opt)" (click)="select(opt, $event)">
+        {{ opt.label }}
+      </div>
+    </div>
+  </div>
+</div>

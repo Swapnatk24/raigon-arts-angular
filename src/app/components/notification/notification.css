@@ -1,0 +1,35 @@
+:host {
+  display: inline-block;
+  position: relative;
+}
+
+.notification-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notification-dropdown-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 999999;
+}
+
+.icon-success {
+  background: rgba(40, 199, 111, 0.15);
+  color: #28C76F;
+}
+
+.icon-danger {
+  background: rgba(234, 84, 85, 0.15);
+  color: #EA5455;
+}
+
+.text-success {
+  color: #28C76F !important;
+}
+
+.text-danger {
+  color: #EA5455 !important;
+}

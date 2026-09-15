@@ -1,191 +1,181 @@
 <div class="page-header">
-
   <div>
-
-
-<h1 class="page-title">
-  Customer Management
-</h1>
-
-<p class="page-subtitle">
-  Manage customer profiles, photo framing requirements and orders
-</p>
-
-
+    <h1 class="page-title">Customers</h1>
+    <p class="page-subtitle">Manage customer details and photo frame orders</p>
   </div>
-
-<button
-class="btn btn-primary"
-(click)="openCustomerModal()">
-
-
-<i class="fa-solid fa-user-plus"></i>
-
-Add New Customer
-
-
-  </button>
-
+  <div class="flex gap-3">
+    <button class="btn btn-secondary" type="button" (click)="exportCSV()">
+      <i class="fa-solid fa-file-export"></i> Export CSV
+    </button>
+    <button class="btn btn-primary" type="button" (click)="openCustomerModal()">
+      <i class="fa-solid fa-user-plus"></i> Add New Customer
+    </button>
+  </div>
 </div>
 
+<!-- Main Data Table Container -->
 <div class="table-card">
-
   <div class="table-toolbar">
+    <div class="toolbar-left">
+      <div class="table-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+          type="text"
+          placeholder="Search customer, phone, ID..."
+          [value]="searchQuery"
+          (input)="handleSearch($any($event.target).value)"
+        />
+      </div>
 
+      <!-- Status Filter -->
+      <select
+        class="form-select text-sm"
+        style="width: 160px;"
+        [value]="statusFilter"
+        (change)="handleFilterChange($any($event.target).value)"
+      >
+        <option value="All">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+    </div>
 
-<div class="toolbar-left">
+    <div class="toolbar-right">
+      <!-- Rows Pagination Dropdown -->
+      <select
+        class="form-select text-sm"
+        style="width: 100px;"
+        [value]="pageSize"
+        (change)="handlePageSizeChange($any($event.target).value)"
+      >
+        <option value="5">1-5</option>
+        <option value="10">1-10</option>
+      </select>
 
-  <div class="table-search">
-
-    <i class="fa-solid fa-magnifying-glass"></i>
-
-    <input
-      type="text"
-      placeholder="Search customer name, phone..."
-      [(ngModel)]="searchQuery">
-
-  </div>
-
-</div>
-
-
-<div class="toolbar-right">
-
-  <span class="text-sm text-muted">
-
-    Total:
-
-    <strong>
-      {{ filteredCustomers.length }}
-    </strong>
-
-  </span>
-
-</div>
-
-
+      <!-- Sort Selector -->
+      <select
+        class="form-select text-sm"
+        style="width: 180px;"
+        [value]="sortBy"
+        (change)="handleSortChange($any($event.target).value)"
+      >
+        <option value="date_desc">Newest First</option>
+        <option value="date_asc">Oldest First</option>
+        <option value="name_asc">Name (A-Z)</option>
+        <option value="amount_desc">Total Amount (High-Low)</option>
+      </select>
+    </div>
   </div>
 
   <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 110px;">Customer ID</th>
+          <th style="width: 170px;">Customer Name</th>
+          <th style="width: 130px;">Phone No</th>
+          <th style="width: 180px;">Address</th>
+          <th style="width: 150px;">Selected Photos</th>
+          <th style="width: 110px;">Frame Size</th>
+          <th style="width: 120px;">Frame Type</th>
+          <th style="width: 60px;">Qty</th>
+          <th style="width: 130px;">Order Status</th>
+          <th style="width: 110px;">Order Date</th>
+          <th style="width: 110px; text-align: center;">Actions</th>
+        </tr>
+      </thead>
 
-
-<table class="data-table">
-
-  <thead>
-
-    <tr>
-
-      <th>Order ID</th>
-      <th>Customer</th>
-      <th>Phone</th>
-      <th>City</th>
-      <th>Frame Size</th>
-      <th>Qty</th>
-      <th>Amount</th>
-      <th>Payment</th>
-      <th>Status</th>
-      <th>Actions</th>
-
-    </tr>
-
-  </thead>
-
-
-  <tbody>
-
-    @for (
-      customer of filteredCustomers;
-      track customer.id
-    ) {
-
-      <tr>
-
-        <td class="font-bold text-primary">
-          {{ customer.id }}
-        </td>
-
-
-        <td class="font-semibold">
-          {{ customer.name }}
-        </td>
-
-
-        <td>
-          {{ customer.phone }}
-        </td>
-
-
-        <td>
-          {{ customer.city }}
-        </td>
-
-
-        <td>
-          {{ customer.frameSize }}
-        </td>
-
-
-        <td>
-          {{ customer.quantity }}
-        </td>
-
-
-        <td class="font-bold">
-          ₹{{ customer.totalAmount | number }}
-        </td>
-
-
-        <td>
-
-          <span class="badge badge-completed">
-            {{ customer.paymentStatus }}
-          </span>
-
-        </td>
-
-
-        <td>
-
-          <span class="badge badge-pending">
-            {{ customer.orderStatus }}
-          </span>
-
-        </td>
-
-
-        <td>
-
-          <div class="table-actions">
-
-            <button
-              class="action-btn edit">
-
-              <i class="fa-solid fa-pen-to-square"></i>
-
-            </button>
-
-
-            <button
-              class="action-btn delete"
-              (click)="deleteCustomer(customer.id)">
-
-              <i class="fa-solid fa-trash"></i>
-
-            </button>
-
-          </div>
-
-        </td>
-
-      </tr>
-
-    }
-
-  </tbody>
-
-</table>
-
-
+      <tbody>
+        @for (cust of paginatedCustomers; track cust.id) {
+          <tr>
+            <td class="font-bold text-primary">{{ cust.id }}</td>
+            <td>
+              <div class="customer-avatar-cell">
+                <div class="avatar-circle">{{ cust.name.charAt(0) }}</div>
+                <div>
+                  <div class="font-semibold">{{ cust.name }}</div>
+                  <div class="text-xs text-muted">{{ cust.city || 'Kerala' }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="font-medium">{{ cust.phone }}</td>
+            <td>
+              <div style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="cust.address || ''">
+                {{ cust.address || 'N/A' }}
+              </div>
+            </td>
+            <td>
+              <div class="photo-stack" [title]="(cust.photos?.length || 0) + ' photos uploaded'" *ngIf="cust.photos && cust.photos.length > 0">
+                <img
+                  *ngFor="let p of cust.photos.slice(0, 3)"
+                  [src]="p.url"
+                  class="photo-thumbnail-sm"
+                  [alt]="p.name"
+                />
+                <div class="photo-more-badge" *ngIf="cust.photos.length > 3">+{{ cust.photos.length - 3 }}</div>
+                <span class="text-xs font-semibold text-muted" style="margin-left: 6px;">({{ cust.photos.length }})</span>
+              </div>
+              <span class="text-xs text-muted" *ngIf="!cust.photos || cust.photos.length === 0">No photos</span>
+            </td>
+            <td class="font-semibold">{{ cust.frameSize }}</td>
+            <td>{{ cust.frameType }}</td>
+            <td class="font-bold">{{ cust.quantity }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(cust.orderStatus)">
+                <span class="badge-dot"></span> {{ cust.orderStatus }}
+              </span>
+            </td>
+            <td class="text-sm">{{ formatDate(cust.orderDate) }}</td>
+            <td>
+              <div class="table-actions">
+                <button class="action-btn" type="button" title="View Customer Profile" (click)="viewCustomer(cust)">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <button
+                  class="action-btn"
+                  type="button"
+                  style="color: #25D366; background: rgba(37, 211, 102, 0.12);"
+                  title="Send WhatsApp Order Receipt"
+                  (click)="sendWhatsAppReceipt(cust)"
+                >
+                  <i class="fa-brands fa-whatsapp"></i>
+                </button>
+                <button class="action-btn edit" type="button" title="Edit Customer & Order" (click)="editCustomer(cust)">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button class="action-btn delete" type="button" title="Delete Record" (click)="deleteCustomer(cust.id, cust.name)">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              <i class="fa-solid fa-folder-open" style="font-size: 32px; margin-bottom: 8px; display: block;"></i>
+              No customer records match your filter criteria.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
   </div>
 
+  <!-- Table Pagination Bar -->
+  <div class="table-pagination">
+    <div class="text-sm text-muted">
+      Showing <span class="font-semibold">{{ filteredAndSortedCustomers.length === 0 ? 0 : startIndex + 1 }}</span>–<span class="font-semibold">{{ min(startIndex + pageSize, filteredAndSortedCustomers.length) }}</span> of <span class="font-semibold">{{ filteredAndSortedCustomers.length }}</span> customers
+    </div>
+    <div class="pagination-controls">
+      <button class="page-btn" type="button" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+        <i class="fa-solid fa-chevron-left"></i> Previous
+      </button>
+      <span class="text-sm font-semibold" style="margin: 0 8px;">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button class="page-btn" type="button" [disabled]="currentPage === totalPages || filteredAndSortedCustomers.length === 0" (click)="changePage(currentPage + 1)">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
 </div>

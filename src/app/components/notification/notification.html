@@ -1,1 +1,92 @@
-<p>notification works!</p>
+<div class="notification-container">
+  <!-- Notification Bell Button -->
+  <button type="button" class="btn-icon notification-btn" title="Notifications" (click)="toggle($event)">
+    <i class="fa-solid fa-bell"></i>
+    <span class="notification-indicator" *ngIf="totalCount > 0">{{ totalCount }}</span>
+  </button>
+
+  <!-- Notification Dropdown Popover -->
+  <div id="notificationDropdown" class="notification-dropdown-popover" *ngIf="isOpen"
+    (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="notif-header">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-primary);">
+            Action Notifications 🔔
+          </h4>
+          <span class="badge"
+            style="background: rgba(212,191,138,0.18); color: #B38F38; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">
+            {{ totalCount }} Active
+          </span>
+        </div>
+        <button type="button" class="notif-clear-btn" (click)="close()" title="Close Notifications">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="notif-tabs" style="display: flex; gap: 6px; margin-top: 12px;">
+        <button type="button" class="notif-tab-btn" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+          All ({{ totalCount }})
+        </button>
+        <button type="button" class="notif-tab-btn" [class.active]="activeFilter === 'completed'"
+          (click)="setFilter('completed')">
+          <i class="fa-solid fa-circle-check text"></i> Completed ({{ completedOrders.length }})
+        </button>
+        <button type="button" class="notif-tab-btn" [class.active]="activeFilter === 'pending'"
+          (click)="setFilter('pending')">
+          <i class="fa-solid fa-triangle-exclamation text"></i> Dues ({{ pendingPayments.length }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="notif-body">
+      @if (items.length === 0) {
+      <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+        <i class="fa-solid fa-bell-slash" style="font-size: 32px; margin-bottom: 10px; opacity: 0.4;"></i>
+        <p style="margin: 0; font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">
+          No action items in this filter
+        </p>
+        <p style="margin: 4px 0 0 0; font-size: 11.5px; color: var(--text-muted);">
+          All framing jobs and payments are up to date!
+        </p>
+      </div>
+      } @else {
+      @for (item of items; track item.id + item.type) {
+      <div class="notif-item" [ngClass]="item.type">
+        <div class="notif-icon-box" [ngClass]="item.type === 'completed' ? 'icon-success' : 'icon-danger'">
+          <i [class]="item.type === 'completed' ? 'fa-solid fa-circle-check' : 'fa-solid fa-hand-holding-dollar'"></i>
+        </div>
+        <div class="notif-content">
+          <div class="notif-title-row">
+            <span class="notif-item-title">{{ item.title }}</span>
+            <span class="notif-time">{{ item.time }}</span>
+          </div>
+          <p class="notif-desc">{{ item.desc }}</p>
+          <div class="notif-meta">{{ item.meta }}</div>
+          <div class="notif-actions">
+            <button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11.5px;"
+              (click)="openOrder(item.id)">
+              <i class="fa-solid fa-eye"></i> View Details
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" style="padding: 4px 10px; font-size: 11.5px;"
+              (click)="sendWhatsAppAlert(item.id)">
+              <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="notif-footer">
+      <button type="button" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 12.5px; font-weight: 600;"
+        (click)="viewAllOrders()">
+        View All Workshop Orders <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
