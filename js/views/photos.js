@@ -94,9 +94,14 @@ class PhotosView {
                 <span class="font-bold text-primary">${p.customerName} (${p.customerId})</span>
               </div>
               <div class="photo-card-meta">
-                <span>Size: ${p.frameSize}</span>
+                <span class="font-bold">Size: ${p.frameSize || '12 × 18 inch'}</span>
                 <span class="badge ${p.orderStatus === 'Completed' ? 'badge-completed' : 'badge-pending'}">${p.orderStatus}</span>
               </div>
+              ${(p.frameType || p.material) ? `
+                <div class="photo-card-meta text-xs text-muted" style="margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <i class="fa-solid fa-box text-primary"></i> ${p.frameType || ''} ${p.material ? '• ' + p.material : ''}
+                </div>
+              ` : ''}
             </div>
           </div>
         `).join('')}
@@ -117,6 +122,7 @@ class PhotosView {
                 <th>Customer</th>
                 <th>Order ID</th>
                 <th>Frame Size</th>
+                <th>Frame Type & Material</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -133,7 +139,8 @@ class PhotosView {
                   <td class="font-semibold">${p.name}</td>
                   <td>${p.customerName}</td>
                   <td class="font-bold text-primary">${p.customerId}</td>
-                  <td>${p.frameSize}</td>
+                  <td class="font-bold">${p.frameSize || '12 × 18 inch'}</td>
+                  <td>${p.frameType || 'Wooden'} ${p.material ? '• ' + p.material : ''}</td>
                   <td><span class="badge badge-completed">${p.orderStatus}</span></td>
                   <td>
                     <button class="action-btn" title="View Fullscreen" onclick="window.RaigonModal.openLightbox('${p.url}', '${p.name}')">
