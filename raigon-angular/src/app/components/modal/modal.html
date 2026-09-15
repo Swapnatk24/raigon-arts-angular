@@ -1,242 +1,784 @@
-<!-- =========================================
-     ADD CUSTOMER MODAL
-     ========================================= -->
+<!-- ==========================================================================
+     3. MODALS & DIALOG OVERLAYS
+     ========================================================================== -->
 
-<div
-  class="modal-overlay active"
-  *ngIf="showAddCustomerModal"
-  (click)="closeAddCustomerModal()"
->
-  <div
-    class="modal-container"
-    (click)="$event.stopPropagation()"
-  >
-
+<!-- ADD / EDIT CUSTOMER & ORDER MODAL -->
+<div id="customerModal" class="modal-overlay" [class.active]="showAddCustomerModal" *ngIf="showAddCustomerModal"
+  (click)="closeAddCustomerModal()">
+  <form id="customerForm" class="modal-card" style="max-width: 840px;" novalidate (click)="$event.stopPropagation()"
+    (submit)="saveCustomer(); $event.preventDefault()">
     <div class="modal-header">
-
-      <div>
-        <h2>Add New Customer</h2>
-        <p>Add a new customer to your collection</p>
+      <div class="flex items-center gap-3">
+        <div
+          style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(72.47deg, #000000 0%, #D4BF8A 100%); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+          <i [class]="isEditMode ? 'fa-solid fa-pen-to-square' : 'fa-solid fa-user-plus'"></i>
+        </div>
+        <div>
+          <h3 id="customerModalTitle" class="modal-title font-bold">
+            {{ isEditMode ? 'Edit Customer & Frame Order (' + editingCustomerId + ')' : 'Add New Customer & Frame Order'
+            }}
+          </h3>
+          <p class="text-xs text-muted" style="margin-top: 1px;">
+            {{ isEditMode ? 'Update customer profile, framing details, photos, and billing' : 'Fill in customer profile,
+            workshop framing details, and photos' }}
+          </p>
+        </div>
       </div>
-
-      <button
-        type="button"
-        class="modal-close"
-        (click)="closeAddCustomerModal()"
-      >
-        ×
-      </button>
-
+      <button type="button" class="modal-close-btn" (click)="closeAddCustomerModal()"><i
+          class="fa-solid fa-xmark"></i></button>
     </div>
-
-
     <div class="modal-body">
+      <input type="hidden" id="formCustId" [value]="editingCustomerId || ''">
 
-      <div class="form-group">
-        <label>
-          Customer Name <span>*</span>
+      <!-- SECTION 1: CUSTOMER INFORMATION -->
+      <h4 class="form-section-header"><i class="fa-solid fa-user"></i> Customer Information</h4>
+      <div class="form-grid">
+        <div class="col-6 form-group">
+          <label class="form-label" for="formCustName">Customer Name <span class="required"
+              style="color: #EA5455;">*</span></label>
+          <input type="text" id="formCustName" class="form-input" [class.is-invalid]="!!nameError"
+            placeholder="e.g. Raigon Arts " [(ngModel)]="customerName" (input)="onNameInput($event)"
+            (keypress)="allowLettersOnly($event)" (paste)="onNamePaste($event)" (blur)="nameTouched = true"
+            name="customerName" autocomplete="off" required>
+          <div class="field-error-msg" *ngIf="nameError" id="custNameError">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ nameError }}</span>
+          </div>
+        </div>
+        <div class="col-6 form-group">
+          <label class="form-label" for="formCustPhone">Phone Number <span class="required"
+              style="color: #EA5455;">*</span></label>
+          <input type="tel" id="formCustPhone" class="form-input" [class.is-invalid]="!!phoneError"
+            placeholder="e.g. 9567599559" [(ngModel)]="customerPhone" (input)="onPhoneInput($event)"
+            (keypress)="allowNumbersOnly($event)" (paste)="onPhonePaste($event)" (blur)="phoneTouched = true"
+            name="customerPhone" maxlength="10" autocomplete="off" required>
+          <div class="field-error-msg" *ngIf="phoneError" id="custPhoneError">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ phoneError }}</span>
+          </div>
+        </div>
+        <div class="col-6 form-group">
+          <label class="form-label" for="formCustAltPhone">Alternative Phone Number</label>
+          <input type="tel" id="formCustAltPhone" class="form-input" placeholder="e.g. 9447000000"
+            [(ngModel)]="alternativePhone" (input)="onAltPhoneInput($event)" (keypress)="allowNumbersOnly($event)"
+            (paste)="onPhonePaste($event)" name="alternativePhone" maxlength="10" autocomplete="off">
+        </div>
+        <div class="col-6 form-group">
+          <label class="form-label">City / Town</label>
+          <input type="text" id="formCustCity" class="form-input" placeholder="e.g. Trivandrum, Kochi, Kollam"
+            [(ngModel)]="customerCity" name="customerCity">
+        </div>
+        <div class="col-8 form-group">
+          <label class="form-label">Full Address</label>
+          <input type="text" id="formCustAddress" class="form-input" placeholder="Street, Building No, Landmark"
+            [(ngModel)]="customerAddress" name="customerAddress">
+        </div>
+        <div class="col-4 form-group">
+          <label class="form-label">Pincode</label>
+          <input type="text" id="formCustPincode" class="form-input" placeholder="695001" [(ngModel)]="customerPincode"
+            name="customerPincode">
+        </div>
+      </div>
+
+      <!-- SECTION 2: PHOTO DETAILS & CONFIGURATION MODE -->
+      <h4 class="form-section-header" style="margin-top: 24px;"><i class="fa-solid fa-images"></i> Photo Details &
+        Framing Options</h4>
+
+      <!-- CONFIGURATION MODE SELECTOR TOGGLE CARDS -->
+      <div class="frame-config-toggle-grid">
+        <label class="frame-config-card" [class.active]="frameConfigMode === 'same'" id="configCardSame"
+          (click)="setFrameConfigMode('same')">
+          <div class="config-radio-circle"></div>
+          <div class="config-card-content">
+            <div class="config-card-title"><i class="fa-solid fa-clone text-primary"></i> Same Frame for All Photos
+            </div>
+            <div class="config-card-desc">Upload multiple photos that share identical frame dimensions, material, and
+              moulding style.</div>
+          </div>
         </label>
 
-        <input
-          type="text"
-          [(ngModel)]="customerName"
-          (input)="validateName()"
-          placeholder="Enter customer name"
-        />
-
-        <small
-          class="error-message"
-          *ngIf="nameError"
-        >
-          {{ nameError }}
-        </small>
-      </div>
-
-
-      <div class="form-group">
-        <label>
-          Phone Number <span>*</span>
+        <label class="frame-config-card" [class.active]="frameConfigMode === 'individual'" id="configCardIndividual"
+          (click)="setFrameConfigMode('individual')">
+          <div class="config-radio-circle"></div>
+          <div class="config-card-content">
+            <div class="config-card-title"><i class="fa-solid fa-layer-group text-primary"></i> Individual Frame for
+              Each Photo</div>
+            <div class="config-card-desc">Configure separate frame size, type, material, color, and specs for every
+              photo uploaded.</div>
+          </div>
         </label>
-
-        <input
-          type="text"
-          [(ngModel)]="customerPhone"
-          (input)="validatePhone()"
-          maxlength="10"
-          inputmode="numeric"
-          placeholder="Enter 10 digit phone number"
-        />
-
-        <small
-          class="error-message"
-          *ngIf="phoneError"
-        >
-          {{ phoneError }}
-        </small>
       </div>
 
-
-      <div class="form-group">
-        <label>Address</label>
-
-        <textarea
-          [(ngModel)]="customerAddress"
-          rows="3"
-          placeholder="Enter customer address"
-        ></textarea>
+      <!-- MODE A: BULK / SAME FRAME FOR ALL PHOTOS -->
+      <div id="bulkUploadSection" *ngIf="frameConfigMode === 'same'">
+        <div class="dropzone-container" id="photoDropzone" (click)="photoFileInput.click()">
+          <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
+          <h4 class="font-bold text-base">Drag & Drop Customer Photos Here</h4>
+          <p class="text-xs text-muted" style="margin-bottom: 8px;">Supports JPG, PNG, WEBP high-resolution photo
+            prints</p>
+          <button type="button" class="btn btn-secondary btn-sm"
+            (click)="$event.stopPropagation(); photoFileInput.click()"><i class="fa-solid fa-folder-open"></i> Browse
+            Files</button>
+          <input #photoFileInput type="file" id="photoFileInput" multiple accept="image/*" style="display: none;"
+            (change)="onPhotoSelected($event)">
+        </div>
+        <div class="flex justify-between items-center" style="margin-top: 10px; margin-bottom: 8px;">
+          <span id="photoCountBadge" class="text-xs font-bold text-primary">{{ selectedPhotos.length }} photos
+            selected</span>
+        </div>
+        <div id="photoPreviewGrid" class="photo-preview-grid" *ngIf="selectedPhotos.length > 0"
+          style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+          <div *ngFor="let p of selectedPhotos; let i = index"
+            style="position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--border-color); box-shadow: var(--shadow-xs);">
+            <img [src]="p.url" [alt]="p.name" style="width: 100%; height: 100%; object-fit: cover;" />
+            <button type="button" (click)="removePhoto(i)"
+              style="position: absolute; top: 4px; right: 4px; background: rgba(234, 84, 85, 0.9); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer;"
+              title="Remove Photo">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
       </div>
 
+      <!-- MODE A COMMON FRAME SPECIFICATIONS -->
+      <div id="commonFrameSpecsSection" *ngIf="frameConfigMode === 'same'" style="margin-top: 24px;">
+        <h4 class="form-section-header"><i class="fa-solid fa-ruler-combined"></i> Frame Specifications</h4>
+        <div class="form-grid">
+          <div class="col-6 form-group">
+            <label class="form-label">Frame Size</label>
+            <select id="formFrameSize" class="form-select" [(ngModel)]="frameSize" name="frameSize">
+              <option value="" disabled selected>Select Frame Size</option>
+              <option value="4 × 6">4 × 6</option>
+              <option value="5 × 7">5 × 7</option>
+              <option value="8 × 10">8 × 10</option>
+              <option value="8 × 12">8 × 12</option>
+              <option value="12 × 18">12 × 18</option>
+              <option value="16 × 20">16 × 20</option>
+              <option value="20 × 30">20 × 30</option>
+              <option value="Custom Size">Custom Size</option>
+            </select>
+          </div>
 
-      <div class="form-group">
-        <label>Customer Photo</label>
+          <div class="col-6 form-group">
+            <label class="form-label">Unit</label>
+            <select id="formUnit" class="form-select" [(ngModel)]="unit" name="unit">
+              <option value="" disabled selected>Select Unit</option>
+              <option value="inch">Inch</option>
+              <option value="cm">CM</option>
+            </select>
+          </div>
 
-        <input
-          type="file"
-          accept="image/*"
-          (change)="onPhotoSelected($event)"
-        />
+          <div class="col-6 form-group">
+            <label class="form-label">Custom Width</label>
+            <input type="number" id="formCustomWidth" class="form-input" placeholder="Width (e.g. 12)"
+              [(ngModel)]="customWidth" name="customWidth">
+          </div>
+
+          <div class="col-6 form-group">
+            <label class="form-label">Custom Height</label>
+            <input type="number" id="formCustomHeight" class="form-input" placeholder="Height (e.g. 18)"
+              [(ngModel)]="customHeight" name="customHeight">
+          </div>
+
+          <div class="col-4 form-group">
+            <label class="form-label">Frame Type</label>
+            <select id="formFrameType" class="form-select" [(ngModel)]="frameType" name="frameType">
+              <option value="" disabled selected>Select Frame Type</option>
+              <option value="Wooden Frame">Wooden Frame</option>
+              <option value="Premium Frame">Premium Frame</option>
+              <option value="Classic Frame">Classic Frame</option>
+              <option value="Canvas Float">Canvas Float</option>
+              <option value="Box Frame">Box Frame</option>
+            </select>
+          </div>
+
+          <div class="col-4 form-group">
+            <label class="form-label">Frame Material</label>
+            <input type="text" id="formFrameMaterial" class="form-input" placeholder="e.g. Teak Wood Moulding"
+              [(ngModel)]="frameMaterial" name="frameMaterial">
+          </div>
+
+          <div class="col-4 form-group">
+            <label class="form-label">Frame Color Finish</label>
+            <input type="text" id="formFrameColor" class="form-input" placeholder="e.g. Walnut Brown, Matte Black"
+              [(ngModel)]="frameColor" name="frameColor">
+          </div>
+
+          <div class="col-6 form-group">
+            <label class="form-label">Photo Orientation</label>
+            <select id="formOrientation" class="form-select" [(ngModel)]="orientation" name="orientation">
+              <option value="" disabled selected>Select Orientation</option>
+              <option value="Landscape">Landscape (Horizontal)</option>
+              <option value="Portrait">Portrait (Vertical)</option>
+              <option value="Square">Square</option>
+            </select>
+          </div>
+
+          <div class="col-6 form-group">
+            <label class="form-label">Quantity</label>
+            <input type="number" id="formQuantity" class="form-input" min="1" placeholder="1" [(ngModel)]="quantity"
+              name="quantity">
+          </div>
+
+          <div class="col-12 form-group">
+            <label class="form-label">Special Instructions / Mounting Notes</label>
+            <textarea id="formNotes" class="form-textarea" rows="2"
+              placeholder="Glass type (Anti-glare, Clear), Matting board margin, mounting hooks..." [(ngModel)]="notes"
+              name="notes"></textarea>
+          </div>
+        </div>
       </div>
 
+      <!-- MODE B: INDIVIDUAL FRAME FOR EACH PHOTO -->
+      <div id="individualPhotoSection" *ngIf="frameConfigMode === 'individual'">
+        <div id="individualCardsList">
+          <div *ngIf="selectedPhotos.length === 0"
+            style="text-align: center; padding: 32px 16px; border: 2px dashed var(--border-color); border-radius: 16px; background: var(--bg-surface); margin-bottom: 20px;">
+            <i class="fa-solid fa-images" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px;"></i>
+            <p style="margin: 0; font-size: 14px; font-weight: 700; color: var(--text-primary);">No photos added yet</p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">Click "Add Another Photo & Frame"
+              below to add a photo card.</p>
+          </div>
 
-      <div
-        class="photo-preview"
-        *ngIf="selectedPhoto"
-      >
-        <img
-          [src]="selectedPhoto.url"
-          alt="Customer Photo"
-        />
+          <div *ngFor="let p of selectedPhotos; let idx = index" class="individual-photo-card">
+            <!-- CARD TOP BAR -->
+            <div class="photo-card-top-bar">
+              <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
+                <div class="photo-card-img-preview">
+                  <img [src]="p.url" [alt]="p.name">
+                </div>
+                <div class="photo-card-info">
+                  <div class="photo-card-filename"><i class="fa-solid fa-image text-primary"></i> {{ p.name }}</div>
+                  <div class="photo-card-badges">
+                    <span class="badge"
+                      style="background: rgba(212,191,138,0.18); color: #B38F38; font-size: 11px; font-weight: 600;">Photo
+                      #{{ idx + 1 }}</span>
+                    <span class="text-xs text-muted">{{ p.size || '2.5 MB' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" (click)="indivReplaceInput.click()"
+                  title="Replace Photo">
+                  <i class="fa-solid fa-arrows-rotate"></i> Replace
+                </button>
+                <input #indivReplaceInput type="file" accept="image/*" style="display: none;"
+                  (change)="replaceIndividualPhoto(idx, $event)">
+
+                <button type="button" class="btn btn-sm"
+                  style="background: #FCE4E4; color: #EA5455; border: 1px solid #F7C5C5;" (click)="removePhoto(idx)"
+                  title="Remove Photo Card">
+                  <i class="fa-solid fa-trash"></i> Remove
+                </button>
+              </div>
+            </div>
+
+            <!-- INDIVIDUAL FRAME SPECIFICATIONS FORM GRID -->
+            <div class="form-grid">
+              <div class="col-6 form-group">
+                <label class="form-label">Frame Size</label>
+                <select class="form-select" [(ngModel)]="p.frameSize" [name]="'photo_frameSize_' + idx">
+                  <option value="" disabled selected>Select Frame Size</option>
+                  <option value="4 × 6">4 × 6</option>
+                  <option value="5 × 7">5 × 7</option>
+                  <option value="8 × 10">8 × 10</option>
+                  <option value="8 × 12">8 × 12</option>
+                  <option value="12 × 18">12 × 18</option>
+                  <option value="16 × 20">16 × 20</option>
+                  <option value="20 × 30">20 × 30</option>
+                  <option value="Custom Size">Custom Size</option>
+                </select>
+              </div>
+
+              <div class="col-6 form-group">
+                <label class="form-label">Unit</label>
+                <select class="form-select" [(ngModel)]="p.unit" [name]="'photo_unit_' + idx">
+                  <option value="" disabled selected>Select Unit</option>
+                  <option value="inch">Inch</option>
+                  <option value="cm">CM</option>
+                </select>
+              </div>
+
+              <div class="col-4 form-group">
+                <label class="form-label">Frame Type</label>
+                <select class="form-select" [(ngModel)]="p.frameType" [name]="'photo_frameType_' + idx">
+                  <option value="" disabled selected>Select Frame Type</option>
+                  <option value="Wooden Frame">Wooden Frame</option>
+                  <option value="Premium Frame">Premium Frame</option>
+                  <option value="Classic Frame">Classic Frame</option>
+                  <option value="Canvas Float">Canvas Float</option>
+                  <option value="Box Frame">Box Frame</option>
+                </select>
+              </div>
+
+              <div class="col-4 form-group">
+                <label class="form-label">Frame Material</label>
+                <input type="text" class="form-input" [(ngModel)]="p.frameMaterial" [name]="'photo_material_' + idx"
+                  placeholder="e.g. Teak Wood Moulding">
+              </div>
+
+              <div class="col-4 form-group">
+                <label class="form-label">Frame Color Finish</label>
+                <input type="text" class="form-input" [(ngModel)]="p.frameColor" [name]="'photo_color_' + idx"
+                  placeholder="e.g. Walnut Brown">
+              </div>
+
+              <div class="col-6 form-group">
+                <label class="form-label">Photo Orientation</label>
+                <select class="form-select" [(ngModel)]="p.orientation" [name]="'photo_orientation_' + idx">
+                  <option value="" disabled selected>Select Orientation</option>
+                  <option value="Landscape">Landscape (Horizontal)</option>
+                  <option value="Portrait">Portrait (Vertical)</option>
+                  <option value="Square">Square</option>
+                </select>
+              </div>
+
+              <div class="col-6 form-group">
+                <label class="form-label">Quantity</label>
+                <input type="number" class="form-input" [(ngModel)]="p.quantity" [name]="'photo_quantity_' + idx"
+                  min="1" placeholder="1">
+              </div>
+
+              <div class="col-12 form-group">
+                <label class="form-label">Special Instructions / Mounting Notes</label>
+                <textarea [id]="'photo_notes_' + idx" class="form-textarea" rows="2"
+                  placeholder="Glass type (Anti-glare, Clear), Matting board margin, mounting hooks..."
+                  [(ngModel)]="p.notes" [name]="'photo_notes_' + idx"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="add-another-photo-btn" (click)="indivAddMoreFileInput.click()">
+          <i class="fa-solid fa-circle-plus" style="font-size: 18px;"></i>
+          <span>Add Another Photo & Frame</span>
+        </button>
+        <input #indivAddMoreFileInput type="file" id="indivAddMoreFileInput" multiple accept="image/*"
+          style="display: none;" (change)="onPhotoSelected($event)">
       </div>
 
+      <!-- SECTION 4: ORDER & PAYMENT DETAILS -->
+      <h4 class="form-section-header" style="margin-top: 24px;"><i class="fa-solid fa-receipt"></i> Order & Payment
+        Details</h4>
+      <div class="form-grid">
+        <div class="col-6 form-group">
+          <label class="form-label">Order Date</label>
+          <input type="text" id="formOrderDate" class="form-input" [(ngModel)]="orderDate" name="orderDate" readonly>
+        </div>
+
+        <div class="col-6 form-group">
+          <label class="form-label">Expected Delivery Date</label>
+          <app-datepicker id="formDeliveryDate" [(ngModel)]="deliveryDate" name="deliveryDate"
+            placeholder="Select Delivery Date"></app-datepicker>
+        </div>
+
+        <div class="col-4 form-group">
+          <label class="form-label">Total Amount (₹)</label>
+          <input type="number" id="formTotalAmount" class="form-input font-bold" placeholder="0"
+            [(ngModel)]="totalAmount" name="totalAmount">
+        </div>
+
+        <div class="col-4 form-group">
+          <label class="form-label">Advance Paid (₹)</label>
+          <input type="number" id="formAdvancePaid" class="form-input font-bold" placeholder="0"
+            [(ngModel)]="advancePaid" name="advancePaid">
+        </div>
+
+        <div class="col-4 form-group">
+          <label class="form-label">Balance Amount (₹)</label>
+          <input type="number" id="formBalanceAmount" class="form-input font-bold text-primary" placeholder="0"
+            [value]="balanceAmount" readonly>
+        </div>
+
+        <div class="col-6 form-group">
+          <label class="form-label">Payment Status</label>
+          <select id="formPaymentStatus" class="form-select font-semibold" [(ngModel)]="paymentStatus"
+            name="paymentStatus">
+            <option value="" disabled selected>Select Payment Status</option>
+            <option value="Unpaid">Unpaid</option>
+            <option value="Partial">Partial</option>
+            <option value="Paid">Paid</option>
+          </select>
+        </div>
+
+        <div class="col-6 form-group">
+          <label class="form-label">Order Status</label>
+          <select id="formOrderStatus" class="form-select font-semibold" [(ngModel)]="orderStatus" name="orderStatus">
+            <option value="" disabled selected>Select Order Status</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
     </div>
-
 
     <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeAddCustomerModal()">Cancel</button>
+      <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> {{ isEditMode ? 'Update Customer &
+        Order' : 'Save Customer & Order' }}</button>
+    </div>
+  </form>
+</div>
 
-      <button
-        type="button"
-        class="btn-cancel"
-        (click)="closeAddCustomerModal()"
-      >
-        Cancel
-      </button>
-
-      <button
-        type="button"
-        class="btn-save"
-        (click)="saveCustomer()"
-      >
-        Add Customer
-      </button>
-
+<!-- ==========================================================================
+     VIEW CUSTOMER DETAILS MODAL (Exact Raigon Design)
+     ========================================================================== -->
+<div id="viewCustomerModal" class="modal-overlay" [class.active]="showViewCustomerModal"
+  *ngIf="showViewCustomerModal && viewCustomerData" (click)="closeViewCustomerModal()">
+  <div class="modal-card" style="max-width: 840px;" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="flex items-center gap-3">
+        <div
+          style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(72.47deg, #000000 0%, #D4BF8A 100%); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+          <i class="fa-solid fa-address-card"></i>
+        </div>
+        <div>
+          <h3 class="modal-title font-bold">Customer Order Profile & Summary</h3>
+          <p class="text-xs text-muted" style="margin-top: 1px;">Complete details and workshop framing specifications
+          </p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="closeViewCustomerModal()"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
+    <div class="modal-body" id="viewCustomerModalBody">
+      <!-- TOP BANNER -->
+      <div class="view-customer-banner">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div class="view-avatar-box">{{ viewCustomerData.name.charAt(0) }}</div>
+          <div>
+            <h2 class="view-customer-name">{{ viewCustomerData.name }}</h2>
+            <div class="view-pill-group">
+              <span class="badge-pill-violet"><i class="fa-solid fa-id-badge"></i> ID: {{ viewCustomerData.id }}</span>
+              <span class="badge-pill-subtle"><i class="fa-solid fa-phone"></i> {{ viewCustomerData.phone }}</span>
+              <span class="badge-pill-subtle"><i class="fa-solid fa-calendar"></i> {{
+                formatDate(viewCustomerData.orderDate) }}</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <span class="badge" [ngClass]="getStatusBadgeClass(viewCustomerData.orderStatus)">
+            <span class="badge-dot"></span> {{ viewCustomerData.orderStatus }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 2-COLUMN CONTACT & PAYMENT DETAILS GRID -->
+      <div class="form-grid">
+        <!-- CUSTOMER CONTACT CARD -->
+        <div class="col-6">
+          <div class="view-detail-card">
+            <h4 class="view-card-title"><i class="fa-solid fa-address-book text-primary"></i> Customer Contact Info</h4>
+            <div class="info-item-row">
+              <span class="info-item-label">Primary Phone</span>
+              <a [href]="'tel:' + viewCustomerData.phone" class="info-item-value text-primary font-bold">{{
+                viewCustomerData.phone }}</a>
+            </div>
+            <div class="info-item-row">
+              <span class="info-item-label">Alt Phone</span>
+              <span class="info-item-value">{{ viewCustomerData.alternativePhone || viewCustomerData.altPhone || 'None'
+                }}</span>
+            </div>
+            <div class="info-item-row">
+              <span class="info-item-label">Delivery Address</span>
+              <span class="info-item-value">{{ viewCustomerData.address || 'N/A' }}</span>
+            </div>
+            <div class="info-item-row">
+              <span class="info-item-label">City & Pincode</span>
+              <span class="info-item-value">{{ viewCustomerData.city || '' }} {{ viewCustomerData.pincode ? '- ' +
+                viewCustomerData.pincode : '' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ORDER & FINANCIAL SUMMARY CARD -->
+        <div class="col-6">
+          <div class="view-detail-card">
+            <h4 class="view-card-title"><i class="fa-solid fa-file-invoice-dollar text-primary"></i> Order & Payment
+              Summary</h4>
+            <div class="financial-grid">
+              <div class="financial-box">
+                <span class="financial-label">Total Amount</span>
+                <span class="financial-value">₹{{ viewCustomerData.totalAmount | number }}</span>
+              </div>
+              <div class="financial-box advance-paid">
+                <span class="financial-label">Advance Paid</span>
+                <span class="financial-value">₹{{ viewCustomerData.advancePaid | number }}</span>
+              </div>
+              <div class="financial-box balance-due">
+                <span class="financial-label">Balance Due</span>
+                <span class="financial-value">₹{{ viewCustomerData.balanceAmount | number }}</span>
+              </div>
+              <div class="financial-box">
+                <span class="financial-label">Payment Status</span>
+                <span class="financial-value" style="font-size: 15px;">{{ viewCustomerData.paymentStatus }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FRAME WORKSHOP SPECIFICATIONS CARD -->
+        <div class="col-12">
+          <div class="view-spec-box">
+            <ng-container *ngIf="viewCustomerData.frameConfigMode === 'individual'; else sameFrameSpecs">
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                <h4 class="view-card-title" style="margin: 0;">
+                  <i class="fa-solid fa-layer-group text-primary"></i> Individual Frame Specifications Configured
+                </h4>
+                <span class="badge"
+                  style="background: linear-gradient(72.47deg, #000000 0%, #D4BF8A 100%); color: #FFFFFF; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+                  <i class="fa-solid fa-sliders"></i> {{ viewCustomerData.photos ? viewCustomerData.photos.length : 0 }}
+                  Custom Frames
+                </span>
+              </div>
+              <p class="text-xs text-muted" style="margin: 6px 0 0 0;">Each photo below has its own distinct frame size,
+                material, color, and mounting specifications configured.</p>
+            </ng-container>
+            <ng-template #sameFrameSpecs>
+              <h4 class="view-card-title"><i class="fa-solid fa-ruler-combined text-primary"></i> Frame Workshop
+                Specifications</h4>
+              <div class="spec-grid-vuexy">
+                <div class="spec-item">
+                  <span class="spec-item-label">Frame Size</span>
+                  <span class="spec-item-value">{{ viewCustomerData.frameSize }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-item-label">Frame Type</span>
+                  <span class="spec-item-value">{{ viewCustomerData.frameType }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-item-label">Material</span>
+                  <span class="spec-item-value">{{ viewCustomerData.frameMaterial || viewCustomerData.material }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-item-label">Color Finish</span>
+                  <span class="spec-item-value">{{ viewCustomerData.frameColor || viewCustomerData.color }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-item-label">Orientation</span>
+                  <span class="spec-item-value">{{ viewCustomerData.orientation }}</span>
+                </div>
+                <div class="spec-item">
+                  <span class="spec-item-label">Quantity</span>
+                  <span class="spec-item-value">{{ viewCustomerData.quantity }} Frames</span>
+                </div>
+              </div>
+              <div class="spec-notes-callout" *ngIf="viewCustomerData.notes">
+                <i class="fa-solid fa-note-sticky" style="font-size: 16px; margin-top: 2px;"></i>
+                <div>
+                  <strong>Special Instructions & Notes:</strong>
+                  <div>{{ viewCustomerData.notes }}</div>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- DIGITAL GALLERY PHOTOS GRID WITH PER-PHOTO SPECS -->
+        <div class="col-12" style="margin-top: 10px;">
+          <h4 class="view-card-title"><i class="fa-solid fa-images text-primary"></i> Digital Photo Vault ({{
+            viewCustomerData.photos ? viewCustomerData.photos.length : 0 }})</h4>
+
+          <div class="view-photo-vault-grid">
+            <p class="text-muted" style="padding: 12px; font-size: 13.5px;"
+              *ngIf="!viewCustomerData.photos || viewCustomerData.photos.length === 0">
+              No uploaded photos for this order.
+            </p>
+            <div class="view-photo-card" *ngFor="let p of viewCustomerData.photos; let idx = index">
+              <div class="view-photo-card-top">
+                <div class="view-photo-card-thumb" (click)="openLightbox(p.url, p.name)"
+                  title="Click to view full image">
+                  <img [src]="p.url" [alt]="p.name">
+                </div>
+                <div class="view-photo-card-info">
+                  <div class="view-photo-card-name" [title]="p.name">{{ p.name }}</div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                    <span class="view-photo-spec-pill"><i class="fa-solid fa-image"></i> Photo #{{ idx + 1 }}</span>
+                    <span class="text-xs text-muted font-bold">{{ p.size || '3 MB' }}</span>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm"
+                  style="border-radius: 20px; padding: 6px 14px; font-weight: 700; font-size: 12px;"
+                  (click)="openLightbox(p.url, p.name)" title="Zoom Photo">
+                  <i class="fa-solid fa-magnifying-glass-plus"></i> View
+                </button>
+              </div>
+
+              <div class="view-photo-card-specs-body">
+                <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
+                  <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i
+                      class="fa-solid fa-ruler-combined text-gold" style="color: #000000;"></i> Frame Size:</span>
+                  <span class="info-item-value font-bold" style="color: #000000; font-size: 13.5px;">{{
+                    p.frameSize || viewCustomerData.frameSize || '12 × 18 inch' }}</span>
+                </div>
+                <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
+                  <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i
+                      class="fa-solid fa-box text-gold" style="color: #000000;"></i> Frame Type & Material:</span>
+                  <span class="info-item-value font-bold" style="color: #000000;">{{ p.frameType ||
+                    viewCustomerData.frameType || 'Wooden' }} • {{
+                    p.frameMaterial || p.material || viewCustomerData.frameMaterial || viewCustomerData.material ||
+                    'Teak Wood' }}</span>
+                </div>
+                <div class="info-item-row" style="padding: 6px 0; border-bottom: 1px dashed rgba(212, 191, 138, 0.25);">
+                  <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i
+                      class="fa-solid fa-palette text-gold" style="color: #000000;"></i> Color & Finish:</span>
+                  <span class="info-item-value font-bold" style="color: #000000;">{{ p.frameColor || p.color ||
+                    viewCustomerData.frameColor || viewCustomerData.color || 'Walnut Brown'
+                    }}</span>
+                </div>
+                <div class="info-item-row" style="padding: 6px 0;">
+                  <span class="info-item-label" style="font-weight: 600; color: var(--text-secondary);"><i
+                      class="fa-solid fa-compass text-gold" style="color: #000000;"></i> Orientation & Qty:</span>
+                  <span class="info-item-value font-bold" style="color: #000000;">{{ p.orientation ||
+                    viewCustomerData.orientation || 'Landscape' }} •
+                    {{ p.quantity || 1 }} Frame(s)</span>
+                </div>
+                <div *ngIf="p.notes || viewCustomerData.notes"
+                  style="margin-top: 8px; padding: 10px 14px; background: rgba(212, 191, 138, 0.12); border: 1px solid rgba(212, 191, 138, 0.35); border-left: 3.5px solid #D4BF8A; border-radius: 10px; font-size: 12px; color: #000000;">
+                  <strong style="color: #000000;"><i class="fa-solid fa-note-sticky"
+                      style="color: #000000; margin-right: 4px;"></i> Notes:</strong> {{ p.notes ||
+                  viewCustomerData.notes }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button id="viewCustomerEditBtn" class="btn btn-primary" (click)="editFromViewModal()">
+        <i class="fa-solid fa-pen-to-square"></i> Edit Customer & Order
+      </button>
+      <button type="button" id="viewCustomerWhatsAppBtn" class="btn"
+        style="background: #25D366; color: #FFFFFF; font-weight: 600;" (click)="sendWhatsAppFromView()">
+        <i class="fa-brands fa-whatsapp"></i> Send WhatsApp Receipt
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="closeViewCustomerModal()">Close</button>
+    </div>
   </div>
 </div>
 
-
-<!-- =========================================
-     FRAME SIZE MODAL
-     ========================================= -->
-
-<div
-  class="modal-overlay active"
-  *ngIf="showFrameSizeModal"
-  (click)="closeFrameSizeModal()"
->
-
-  <div
-    class="modal-container"
-    (click)="$event.stopPropagation()"
-  >
-
+<!-- ==========================================================================
+     FRAME SIZE ADD / EDIT MODAL
+     ========================================================================== -->
+<div id="frameSizeModal" class="modal-overlay" [class.active]="showFrameSizeModal" *ngIf="showFrameSizeModal"
+  (click)="closeFrameSizeModal()">
+  <div class="modal-card" style="max-width: 520px;" (click)="$event.stopPropagation()">
     <div class="modal-header">
-
-      <div>
-
-        <h2>Add Frame Size</h2>
-
-        <p>Add a new frame size</p>
-
+      <div class="flex items-center gap-3">
+        <div
+          style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(72.47deg, #000000 0%, #D4BF8A 100%); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+          <i class="fa-solid fa-ruler-combined"></i>
+        </div>
+        <div>
+          <h3 id="frameSizeModalTitle" class="modal-title font-bold">Add New Frame Size</h3>
+          <p class="text-xs text-muted" style="margin-top: 1px;">Configure workshop frame dimensions & category</p>
+        </div>
       </div>
-
-      <button
-        type="button"
-        class="modal-close"
-        (click)="closeFrameSizeModal()"
-      >
-        ×
-      </button>
-
+      <button class="modal-close-btn" (click)="closeFrameSizeModal()"><i class="fa-solid fa-xmark"></i></button>
     </div>
-
-
-    <div class="modal-body">
-
-      <div class="form-group">
-
-        <label>
-          Frame Size <span>*</span>
-        </label>
-
-        <input
-          type="text"
-          [(ngModel)]="frameSizeName"
-          placeholder="Example: 12 × 18 inch"
-        />
-
+    <form id="frameSizeForm" (submit)="saveFrameSize(); $event.preventDefault()">
+      <div class="modal-body">
+        <input type="hidden" id="formSizeId" [(ngModel)]="formSizeId" name="formSizeId">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label">Size Name / Label <span class="required" style="color: #EA5455;">*</span></label>
+          <input type="text" id="formSizeName" class="form-input" placeholder="e.g. 12 * 18 inch"
+            [(ngModel)]="formSizeName" (input)="onSizeNameInput()" name="formSizeName" required>
+        </div>
+        <div class="form-grid" style="margin-bottom: 16px;">
+          <div class="col-6 form-group">
+            <label class="form-label">Width <span class="required" style="color: #EA5455;">*</span></label>
+            <input type="number" id="formSizeWidth" class="form-input" placeholder="12" [(ngModel)]="formSizeWidth"
+              name="formSizeWidth" required>
+          </div>
+          <div class="col-6 form-group">
+            <label class="form-label">Height <span class="required" style="color: #EA5455;">*</span></label>
+            <input type="number" id="formSizeHeight" class="form-input" placeholder="18" [(ngModel)]="formSizeHeight"
+              name="formSizeHeight" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label">Measurement Unit</label>
+          <select id="formSizeUnit" class="form-select" [(ngModel)]="formSizeUnit" name="formSizeUnit">
+            <option value="" disabled selected>Select Unit</option>
+            <option value="inch">Inch</option>
+            <option value="cm">CM</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select id="formSizeCategory" class="form-select" [(ngModel)]="formSizeCategory" name="formSizeCategory">
+            <option value="" disabled selected>Select Category</option>
+            <option value="Standard Photo">Standard Photo</option>
+            <option value="Medium Portrait">Medium Portrait</option>
+            <option value="Large Gallery">Large Gallery</option>
+            <option value="Exhibition Wall Art">Exhibition Wall Art</option>
+            <option value="Custom Size">Custom Size</option>
+          </select>
+        </div>
       </div>
-
-
-      <div class="form-group">
-
-        <label>Width</label>
-
-        <input
-          type="number"
-          [(ngModel)]="frameSizeWidth"
-          placeholder="Width"
-        />
-
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeFrameSizeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Frame Size</button>
       </div>
-
-
-      <div class="form-group">
-
-        <label>Height</label>
-
-        <input
-          type="number"
-          [(ngModel)]="frameSizeHeight"
-          placeholder="Height"
-        />
-
-      </div>
-
-    </div>
-
-
-    <div class="modal-footer">
-
-      <button
-        type="button"
-        class="btn-cancel"
-        (click)="closeFrameSizeModal()"
-      >
-        Cancel
-      </button>
-
-      <button
-        type="button"
-        class="btn-save"
-        (click)="saveFrameSize()"
-      >
-        Add Frame Size
-      </button>
-
-    </div>
-
+    </form>
   </div>
-
 </div>
 
+<!-- ==========================================================================
+     CONFIRMATION DIALOG MODAL
+     ========================================================================== -->
+<div id="confirmModal" class="modal-overlay" [class.active]="showConfirmModal" *ngIf="showConfirmModal"
+  (click)="closeConfirmModal()">
+  <div class="modal-card" style="max-width: 440px;" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="confirmModalTitle" class="modal-title font-bold">{{ confirmTitle }}</h3>
+      <button class="modal-close-btn" (click)="closeConfirmModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmModalMessage" class="text-base">{{ confirmMessage }}</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeConfirmModal()">Cancel</button>
+      <button id="confirmModalBtn" type="button" class="btn" [ngClass]="confirmClass" (click)="onConfirmClick()">{{
+        confirmText }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     LIGHTBOX PHOTO MODAL
+     ========================================================================== -->
+<div id="lightboxModal" class="modal-overlay lightbox-overlay" [class.active]="showLightboxModal"
+  *ngIf="showLightboxModal" (click)="closeLightbox()">
+  <button type="button" class="lightbox-top-close-btn" (click)="closeLightbox()" title="Close Preview (Esc)">
+    <i class="fa-solid fa-xmark"></i> Close Preview
+  </button>
+
+  <div class="lightbox-modal-card" (click)="$event.stopPropagation()">
+    <div class="lightbox-modal-header">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-image" style="color: #D4BF8A; font-size: 18px;"></i>
+        <span id="lightboxTitle" class="lightbox-modal-title">{{ lightboxTitle }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="lightboxDownloadBtn" type="button" class="btn btn-primary btn-sm"
+          style="border-radius: 20px; font-weight: 700; padding: 6px 14px; font-size: 12px;"
+          (click)="downloadLightbox()">
+          <i class="fa-solid fa-download"></i> Download
+        </button>
+        <button type="button" class="modal-close-btn lightbox-icon-close" (click)="closeLightbox()" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="lightbox-modal-body">
+      <img id="lightboxImage" [src]="lightboxImageUrl" class="lightbox-img" [alt]="lightboxTitle">
+    </div>
+  </div>
+</div>

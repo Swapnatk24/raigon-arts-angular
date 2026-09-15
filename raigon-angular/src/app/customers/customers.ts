@@ -1,5 +1,5 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ToastService } from '../services/toast.service';
@@ -15,492 +15,230 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    DecimalPipe
+    FormsModule
   ],
   templateUrl: './customers.html'
 })
 export class Customers implements OnInit, OnDestroy {
 
   searchQuery = '';
-
-  showModal = false;
+  statusFilter = 'All';
+  sortBy = 'date_desc';
+  currentPage = 1;
+  pageSize = 5;
 
   customers: Customer[] = [];
-
-  selectedPhotos: CustomerPhoto[] = [];
-
   private subscription = new Subscription();
-
-  customer = {
-    name: '',
-    phone: '',
-    alternativePhone: '',
-    city: '',
-    address: '',
-    pincode: '',
-
-    frameSize: '12 × 18 inch',
-    unit: 'inch',
-
-    frameType: 'Wooden Frame',
-    frameMaterial: 'Teak Wood Moulding',
-    frameColor: 'Walnut Brown',
-
-    orientation: 'Landscape',
-
-    quantity: 1,
-
-    notes: '',
-
-    orderDate: this.getToday(),
-
-    deliveryDate: '',
-
-    totalAmount: 2500,
-
-    advancePaid: 1000,
-
-    paymentStatus: 'Partial',
-
-    orderStatus: 'In Progress'
-  };
 
   constructor(
     private customerService: CustomerService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private cdr: ChangeDetectorRef
   ) {}
 
-  // ============================================================
-  // INIT
-  // ============================================================
-
-  // ngOnInit(): void {
-
-  //   this.subscription.add(
-  //     this.customerService.customers$.subscribe(
-  //       customers => {
-  //         this.customers = customers;
-  //       }
-  //     )
-  //   );
-
-  //   this.subscription.add(
-  //     this.customerService.openCustomerModal$.subscribe(() => {
-  //       this.openCustomerModal();
-  //     })
-  //   );
-
-  // }
-
-
   ngOnInit(): void {
+    (window as any).RaigonCustomersView = this;
+    this.searchQuery = this.customerService.getSearchQuery();
 
-  this.subscription.add(
-    this.customerService.customers$.subscribe(
-      customers => {
+    this.subscription.add(
+      this.customerService.customers$.subscribe(customers => {
         this.customers = customers;
-      }
-    )
-  );
-
-}
-
-  // ============================================================
-  // DESTROY
-  // ============================================================
+        this.cdr.detectChanges();
+      })
+    );
+    this.subscription.add(
+      this.customerService.searchQuery$.subscribe(query => {
+        this.searchQuery = query;
+        this.currentPage = 1;
+        this.cdr.detectChanges();
+      })
+    );
+  }
 
   ngOnDestroy(): void {
-
     this.subscription.unsubscribe();
-
-  }
-
-  // ============================================================
-  // SEARCH / FILTER
-  // ============================================================
-
-  get filteredCustomers(): Customer[] {
-
-    if (!this.searchQuery.trim()) {
-      return this.customers;
+    if ((window as any).RaigonCustomersView === this) {
+      (window as any).RaigonCustomersView = null;
     }
-
-    const search =
-      this.searchQuery.toLowerCase().trim();
-
-    return this.customers.filter(customer =>
-      customer.id.toLowerCase().includes(search) ||
-      customer.name.toLowerCase().includes(search) ||
-      customer.phone.includes(search)
-    );
-
   }
 
-  // ============================================================
-  // OPEN CUSTOMER MODAL
-  // ============================================================
+  get filteredAndSortedCustomers(): Customer[] {
+    const query = this.searchQuery.toLowerCase().trim();
+
+    return this.customers.filter(c => {
+      // Exclude auto-archived from active list if applicable
+      if (c.isArchived7Days) return false;
+
+      const matchQuery = !query ||
+        (c.name && c.name.toLowerCase().includes(query)) ||
+        (c.phone && c.phone.includes(query)) ||
+        (c.id && c.id.toLowerCase().includes(query)) ||
+        (c.city && c.city.toLowerCase().includes(query)) ||
+        (c.frameSize && c.frameSize.toLowerCase().includes(query)) ||
+        (c.frameType && c.frameType.toLowerCase().includes(query));
+
+      const matchStatus = this.statusFilter === 'All' || c.orderStatus === this.statusFilter;
+
+      return matchQuery && matchStatus;
+    }).sort((a, b) => {
+      if (this.sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '');
+      if (this.sortBy === 'amount_desc') return (Number(b.totalAmount) || 0) - (Number(a.totalAmount) || 0);
+      if (this.sortBy === 'date_asc') return this.parseDate(a.orderDate) - this.parseDate(b.orderDate);
+      
+      // Default: Newest first (date_desc)
+      const diff = this.parseDate(b.orderDate) - this.parseDate(a.orderDate);
+      if (diff !== 0) return diff;
+      return (b.id || '').localeCompare(a.id || '');
+    });
+  }
+
+  private parseDate(d: string | undefined): number {
+    if (!d) return 0;
+    const time = new Date(d).getTime();
+    return isNaN(time) ? 0 : time;
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredAndSortedCustomers.length / this.pageSize) || 1;
+  }
+
+  get startIndex(): number {
+    return (this.currentPage - 1) * this.pageSize;
+  }
+
+  get paginatedCustomers(): Customer[] {
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+    return this.filteredAndSortedCustomers.slice(this.startIndex, this.startIndex + this.pageSize);
+  }
+
+  changePage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+
+  handleSearch(val: string): void {
+    this.searchQuery = val;
+    this.currentPage = 1;
+    this.cdr.detectChanges();
+  }
+
+  handleFilterChange(val: string): void {
+    this.statusFilter = val;
+    this.currentPage = 1;
+  }
+
+  handleSortChange(val: string): void {
+    this.sortBy = val;
+  }
+
+  handlePageSizeChange(val: string | number): void {
+    this.pageSize = Number(val) || 5;
+    this.currentPage = 1;
+    this.cdr.detectChanges();
+  }
 
   openCustomerModal(): void {
-
     this.customerService.openAddCustomerModal();
-
   }
 
-  openAddCustomer(): void {
-
-    this.customerService.openAddCustomerModal();
-
+  formatDate(val: string | undefined): string {
+    if (!val || val === 'N/A' || val === 'TBD') return val || '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (/^[A-Za-z]{3}\s+\d{1,2},?\s+\d{4}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+    return val;
   }
 
-  // ============================================================
-  // CLOSE CUSTOMER MODAL
-  // ============================================================
-
-  closeCustomerModal(): void {
-
-    this.showModal = false;
-
+  viewCustomer(customerOrId: Customer | string): void {
+    const cust = typeof customerOrId === 'string'
+      ? this.customerService.getCustomer(customerOrId)
+      : customerOrId;
+    if (cust) {
+      this.customerService.openViewCustomerModal(cust);
+    }
   }
 
-  // ============================================================
-  // SAVE CUSTOMER
-  // ============================================================
-
-  saveCustomer(): void {
-
-    // ----------------------------------------------------------
-    // Customer name validation
-    // ----------------------------------------------------------
-
-    if (!this.customer.name.trim()) {
-
-      this.toastService.warning(
-        'Please enter customer name.'
-      );
-
-      return;
+  editCustomer(customerOrId: Customer | string): void {
+    const cust = typeof customerOrId === 'string'
+      ? this.customerService.getCustomer(customerOrId)
+      : customerOrId;
+    if (cust) {
+      this.customerService.openEditCustomerModal(cust);
     }
-
-    // ----------------------------------------------------------
-    // Customer name validation
-    // Allows letters and spaces only
-    // ----------------------------------------------------------
-
-    if (!/^[A-Za-z\s]+$/.test(this.customer.name.trim())) {
-
-      this.toastService.warning(
-        'Customer name can contain letters and spaces only.'
-      );
-
-      return;
-    }
-
-    // ----------------------------------------------------------
-    // Phone validation
-    // ----------------------------------------------------------
-
-    if (!/^\d{10}$/.test(this.customer.phone)) {
-
-      this.toastService.warning(
-        'Phone number must contain 10 digits.'
-      );
-
-      return;
-    }
-
-    // ----------------------------------------------------------
-    // Total amount
-    // ----------------------------------------------------------
-
-    const total =
-      Number(this.customer.totalAmount) || 0;
-
-    // ----------------------------------------------------------
-    // Advance amount
-    // ----------------------------------------------------------
-
-    const advance =
-      Number(this.customer.advancePaid) || 0;
-
-    // ----------------------------------------------------------
-    // Balance amount
-    // ----------------------------------------------------------
-
-    const balance =
-      Math.max(total - advance, 0);
-
-    // ----------------------------------------------------------
-    // Create customer object
-    // ----------------------------------------------------------
-
-    const newCustomer: Customer = {
-
-      id: this.generateOrderId(),
-
-      name: this.customer.name.trim(),
-
-      phone: this.customer.phone,
-
-      alternativePhone:
-        this.customer.alternativePhone,
-
-      city:
-        this.customer.city,
-
-      address:
-        this.customer.address,
-
-      pincode:
-        this.customer.pincode,
-
-      frameSize:
-        this.customer.frameSize,
-
-      frameType:
-        this.customer.frameType,
-
-      frameMaterial:
-        this.customer.frameMaterial,
-
-      frameColor:
-        this.customer.frameColor,
-
-      unit:
-        this.customer.unit,
-
-      orientation:
-        this.customer.orientation,
-
-      quantity:
-        Number(this.customer.quantity) || 1,
-
-      totalAmount:
-        total,
-
-      advancePaid:
-        advance,
-
-      balanceAmount:
-        balance,
-
-      paymentStatus:
-        this.customer.paymentStatus,
-
-      orderStatus:
-        this.customer.orderStatus,
-
-      orderDate:
-        this.customer.orderDate,
-
-      deliveryDate:
-        this.customer.deliveryDate,
-
-      notes:
-        this.customer.notes,
-
-      photos:
-        [...this.selectedPhotos]
-
-    };
-
-    // ----------------------------------------------------------
-    // Add customer
-    // ----------------------------------------------------------
-
-    this.customerService.addCustomer(newCustomer);
-
-    // ----------------------------------------------------------
-    // Close modal
-    // ----------------------------------------------------------
-
-    this.showModal = false;
-
-    // ----------------------------------------------------------
-    // Reset form
-    // ----------------------------------------------------------
-
-    this.resetForm();
-
-    // ----------------------------------------------------------
-    // Success toast
-    // ----------------------------------------------------------
-
-    this.toastService.success(
-      'Customer added successfully.'
-    );
-
   }
 
-  // ============================================================
-  // DELETE CUSTOMER
-  // ============================================================
-
-  deleteCustomer(id: string): void {
-
-    const confirmed =
-      confirm(
-        'Are you sure you want to delete this customer?'
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    this.customerService.deleteCustomer(id);
-
-    this.toastService.success(
-      'Customer deleted successfully.'
-    );
-
-  }
-
-  // ============================================================
-  // FILE / PHOTO SELECTION
-  // ============================================================
-
-  handleFileSelect(files: FileList | null): void {
-
-    if (!files) {
-      return;
-    }
-
-    Array.from(files).forEach(file => {
-
-      // Only allow image files
-      if (!file.type.startsWith('image/')) {
-        return;
+  deleteCustomer(id: string, name: string): void {
+    this.customerService.confirm({
+      title: 'Delete Customer Order',
+      message: `Are you sure you want to delete customer record "${name}" (${id})? This action cannot be undone.`,
+      confirmText: 'Delete Order',
+      confirmClass: 'btn-danger',
+      onConfirm: () => {
+        this.customerService.deleteCustomer(id);
+        this.toastService.warning(`Customer "${name}" (${id}) deleted.`);
       }
-
-      const photo: CustomerPhoto = {
-
-        name: file.name,
-
-        url: URL.createObjectURL(file)
-
-      };
-
-      this.selectedPhotos.push(photo);
-
     });
+  }
 
-    if (files.length > 0) {
+  sendWhatsAppReceipt(customerOrId: Customer | string): void {
+    this.customerService.sendWhatsAppReceipt(customerOrId);
+  }
 
-      this.toastService.success(
-        `${files.length} photo${files.length > 1 ? 's' : ''} selected.`
-      );
-
+  exportCSV(): void {
+    const list = this.filteredAndSortedCustomers;
+    if (!list.length) {
+      this.toastService.warning('No customer records to export.');
+      return;
     }
 
+    const headers = ['Customer ID', 'Customer Name', 'Phone', 'City', 'Address', 'Frame Size', 'Frame Type', 'Quantity', 'Total Amount', 'Advance Paid', 'Balance', 'Payment Status', 'Order Status', 'Order Date'];
+    const rows = list.map(c => [
+      `"${c.id}"`,
+      `"${c.name}"`,
+      `"${c.phone}"`,
+      `"${c.city || ''}"`,
+      `"${(c.address || '').replace(/"/g, '""')}"`,
+      `"${c.frameSize}"`,
+      `"${c.frameType}"`,
+      c.quantity,
+      c.totalAmount,
+      c.advancePaid,
+      c.balanceAmount,
+      `"${c.paymentStatus}"`,
+      `"${c.orderStatus}"`,
+      `"${c.orderDate}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Raigon_Customers_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    this.toastService.success(`Exported ${list.length} customer records to CSV.`);
   }
 
-  // ============================================================
-  // REMOVE SELECTED PHOTO
-  // ============================================================
-
-  removeSelectedPhoto(index: number): void {
-
-    const photo =
-      this.selectedPhotos[index];
-
-    if (photo?.url) {
-
-      URL.revokeObjectURL(photo.url);
-
+  getStatusBadgeClass(status: string): string {
+    switch (status) {
+      case 'In Progress': return 'badge-in-progress';
+      case 'Completed': return 'badge-completed';
+      case 'Cancelled': return 'badge-cancelled';
+      default: return 'badge-pending';
     }
-
-    this.selectedPhotos.splice(index, 1);
-
   }
 
-  // ============================================================
-  // BALANCE AMOUNT
-  // ============================================================
-
-  get balanceAmount(): number {
-
-    const total =
-      Number(this.customer.totalAmount) || 0;
-
-    const advance =
-      Number(this.customer.advancePaid) || 0;
-
-    return Math.max(total - advance, 0);
-
+  min(a: number, b: number): number {
+    return Math.min(a, b);
   }
-
-  // ============================================================
-  // RESET FORM
-  // ============================================================
-
-  private resetForm(): void {
-
-    this.customer = {
-
-      name: '',
-      phone: '',
-      alternativePhone: '',
-      city: '',
-      address: '',
-      pincode: '',
-
-      frameSize: '12 × 18 inch',
-      unit: 'inch',
-
-      frameType: 'Wooden Frame',
-      frameMaterial: 'Teak Wood Moulding',
-      frameColor: 'Walnut Brown',
-
-      orientation: 'Landscape',
-
-      quantity: 1,
-
-      notes: '',
-
-      orderDate: this.getToday(),
-
-      deliveryDate: '',
-
-      totalAmount: 2500,
-
-      advancePaid: 1000,
-
-      paymentStatus: 'Partial',
-
-      orderStatus: 'In Progress'
-
-    };
-
-    this.selectedPhotos = [];
-
-  }
-
-  // ============================================================
-  // GENERATE ORDER ID
-  // ============================================================
-
-  private generateOrderId(): string {
-
-    const customers =
-      this.customerService.getCustomers();
-
-    const nextNumber =
-      customers.length + 1;
-
-    return `ORD-${String(nextNumber).padStart(3, '0')}`;
-
-  }
-
-  // ============================================================
-  // TODAY'S DATE
-  // ============================================================
-
-  private getToday(): string {
-
-    return new Date()
-      .toISOString()
-      .split('T')[0];
-
-  }
-
 }

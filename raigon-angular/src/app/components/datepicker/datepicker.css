@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+
+.vuexy-calendar-popover {
+  bottom: calc(100% + 6px);
+  top: auto;
+  left: 0;
+  transform: translateY(-8px);
+}
+
+.vuexy-calendar-popover.active {
+  transform: translateY(0);
+}

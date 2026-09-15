@@ -1,0 +1,38 @@
+<div class="datepicker-wrapper">
+  <input type="text" [id]="id" [name]="name" class="form-input datepicker-enhanced" [placeholder]="placeholder"
+    [value]="value" [disabled]="disabled" readonly (click)="isOpen = !isOpen" />
+  <i class="fa-regular fa-calendar-days datepicker-icon" (click)="isOpen = !isOpen"></i>
+
+  <!-- Popover -->
+  <div class="vuexy-calendar-popover" [class.active]="isOpen" (click)="$event.stopPropagation()">
+    <div class="calendar-header">
+      <button type="button" class="cal-nav-btn" (click)="prevMonth($event)" title="Previous Month">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <div class="cal-title">{{ monthNames[month] }} {{ year }}</div>
+      <button type="button" class="cal-nav-btn" (click)="nextMonth($event)" title="Next Month">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <div class="calendar-weekdays">
+      <span *ngFor="let w of weekdays">{{ w }}</span>
+    </div>
+
+    <div class="calendar-days-grid">
+      <div *ngFor="let d of prevDays" class="cal-day other-month">{{ d }}</div>
+      <div *ngFor="let d of daysInMonth" class="cal-day" [class.today]="isToday(d)" [class.selected]="isSelected(d)"
+        (click)="selectDay(d, $event)">
+        {{ d }}
+      </div>
+      <div *ngFor="let d of nextDays" class="cal-day other-month">{{ d }}</div>
+    </div>
+
+    <div class="calendar-presets">
+      <button type="button" class="cal-preset-btn" (click)="selectPreset(0, $event)">Today</button>
+      <button type="button" class="cal-preset-btn" (click)="selectPreset(1, $event)">Tomorrow</button>
+      <button type="button" class="cal-preset-btn" (click)="selectPreset(3, $event)">+3 Days</button>
+      <button type="button" class="cal-preset-btn" (click)="selectPreset(7, $event)">+7 Days</button>
+    </div>
+  </div>
+</div>

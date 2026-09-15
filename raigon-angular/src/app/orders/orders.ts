@@ -1,28 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-interface Order {
-  id: string;
-  name: string;
-  phone: string;
-  photos?: string[];
-  frameSize: string;
-  frameType: string;
-  quantity: number;
-  totalAmount: number;
-  paymentStatus: string;
-  orderStatus: string;
-  deliveryDate?: string;
-}
+import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { Customer, CustomerService } from '../services/customer.service';
+import { ToastService } from '../services/toast.service';
 
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './orders.html',
-  //styleUrl: './orders.css'
+  imports: [CommonModule, FormsModule],
+  templateUrl: './orders.html'
 })
-export class Orders {
+export class Orders implements OnInit, OnDestroy {
 
   tabs = [
     'All',
@@ -40,17 +29,32 @@ export class Orders {
   ];
 
   currentTab = 'All';
-
   searchQuery = '';
+  customers: Customer[] = [];
 
-  customers: Order[] = [];
+  private subscription = new Subscription();
 
-  get filtered(): Order[] {
+  constructor(
+    private customerService: CustomerService,
+    private toastService: ToastService
+  ) {}
 
+  ngOnInit(): void {
+    this.subscription.add(
+      this.customerService.customers$.subscribe(customers => {
+        this.customers = customers;
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
+  }
+
+  get filtered(): Customer[] {
     const search = this.searchQuery.trim().toLowerCase();
 
     return this.customers.filter(order => {
-
       const matchTab =
         this.currentTab === 'All' ||
         order.orderStatus === this.currentTab;
@@ -66,7 +70,7 @@ export class Orders {
   }
 
   openCustomerModal(): void {
-    console.log('Open Add New Customer modal');
+    this.customerService.openAddCustomerModal();
   }
 
   setTab(tab: string): void {
@@ -74,7 +78,6 @@ export class Orders {
   }
 
   getTabCount(tab: string): number {
-
     if (tab === 'All') {
       return this.customers.length;
     }
@@ -92,43 +95,42 @@ export class Orders {
     return Number(amount || 0).toLocaleString('en-IN');
   }
 
+  formatDate(val: string | undefined): string {
+    if (!val || val === 'N/A' || val === 'TBD') return val || '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (/^[A-Za-z]{3}\s+\d{1,2},?\s+\d{4}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+    return val;
+  }
+
   updateOrderStatus(id: string, newStatus: string): void {
-
-    const order = this.customers.find(
-      customer => customer.id === id
-    );
-
+    const order = this.customers.find(c => c.id === id);
     if (order) {
-      order.orderStatus = newStatus;
+      this.customerService.updateCustomer({ ...order, orderStatus: newStatus });
+      this.toastService.success(`Order ${id} status updated to "${newStatus}"`);
     }
   }
 
   viewCustomer(id: string): void {
-    console.log('View customer/order:', id);
-  }
-
-  sendWhatsAppReceipt(id: string): void {
-
-    const order = this.customers.find(
-      customer => customer.id === id
-    );
-
-    if (!order) {
-      return;
+    const order = this.customers.find(c => c.id === id);
+    if (order) {
+      this.customerService.openViewCustomerModal(order);
     }
-
-    const message =
-      `Hello ${order.name}, your Raigon Arts order ${order.id} details are ready.`;
-
-    const phone = order.phone.replace(/\D/g, '');
-
-    window.open(
-      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
-      '_blank'
-    );
   }
 
   editCustomer(id: string): void {
-    console.log('Edit customer/order:', id);
+    const order = this.customers.find(c => c.id === id);
+    if (order) {
+      this.customerService.openEditCustomerModal(order);
+    }
+  }
+
+  sendWhatsAppReceipt(id: string): void {
+    this.customerService.sendWhatsAppReceipt(id);
   }
 }

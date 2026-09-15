@@ -1,288 +1,340 @@
-// import { Component, EventEmitter, Output } from '@angular/core';
-// import { FormsModule } from '@angular/forms';
-
-// @Component({
-//   selector: 'app-login',
-//   standalone: true,
-//   imports: [FormsModule],
-//   templateUrl: './login.html'
-// })
-// export class Login {
-
-//   @Output() loginSuccess = new EventEmitter<void>();
-
-//   username = 'admin@raigonarts.com';
-//   password = 'raigon2026';
-
-//   showPassword = false;
-
-//   forgotPassword = false;
-//   forgotStep = 1;
-
-//   otp = '';
-//   enteredOtp = '';
-
-//   newPassword = '';
-//   confirmPassword = '';
-
-//   otpTimer = 80;
-
-//   login(): void {
-
-//     if (!this.username || !this.password) {
-//       alert('Please enter username and password.');
-//       return;
-//     }
-
-//     const savedPassword =
-//       localStorage.getItem('raigon_saved_password');
-
-//     if (
-//       savedPassword &&
-//       this.password !== savedPassword &&
-//       this.password !== 'raigon2026'
-//     ) {
-//       alert('Incorrect password.');
-//       return;
-//     }
-
-//     localStorage.setItem(
-//       'raigon_logged_in',
-//       'true'
-//     );
-
-//     this.loginSuccess.emit();
-//   }
-
-//   showForgotPassword(): void {
-//     this.forgotPassword = true;
-//     this.forgotStep = 1;
-//   }
-
-//   showLogin(): void {
-//     this.forgotPassword = false;
-//     this.forgotStep = 1;
-//   }
-
-//   sendOtp(): void {
-
-//     this.otp =
-//       Math.floor(
-//         1000 + Math.random() * 9000
-//       ).toString();
-
-//     this.enteredOtp = this.otp;
-
-//     alert(
-//       'Demo OTP: ' + this.otp
-//     );
-
-//     this.forgotStep = 2;
-
-//     this.startTimer();
-//   }
-
-//   startTimer(): void {
-
-//     this.otpTimer = 80;
-
-//     const timer = setInterval(() => {
-
-//       this.otpTimer--;
-
-//       if (this.otpTimer <= 0) {
-//         clearInterval(timer);
-//       }
-
-//     }, 1000);
-//   }
-
-//   verifyOtp(): void {
-
-//     if (this.enteredOtp !== this.otp) {
-//       alert('Incorrect OTP.');
-//       return;
-//     }
-
-//     this.forgotStep = 3;
-//   }
-
-//   savePassword(): void {
-
-//     if (this.newPassword.length < 6) {
-//       alert(
-//         'Password must contain at least 6 characters.'
-//       );
-//       return;
-//     }
-
-//     if (
-//       this.newPassword !== this.confirmPassword
-//     ) {
-//       alert('Passwords do not match.');
-//       return;
-//     }
-
-//     localStorage.setItem(
-//       'raigon_saved_password',
-//       this.newPassword
-//     );
-
-//     alert('Password updated successfully.');
-
-//     this.showLogin();
-//   }
-
-//   togglePassword(): void {
-//     this.showPassword =
-//       !this.showPassword;
-//   }
-// }
-
-
-
-import { Component, EventEmitter, Output, inject } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ToastService } from '../services/toast.service';
+import { ToastComponent } from '../components/toast/toast';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule, ToastComponent],
   templateUrl: './login.html'
 })
-export class Login {
-
+export class Login implements OnInit, OnDestroy {
   private router = inject(Router);
+  private toastService = inject(ToastService);
+  private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
 
   @Output() loginSuccess = new EventEmitter<void>();
 
-  username = 'admin@raigonarts.com';
-  password = 'raigon2026';
-
+  username = '';
+  password = '';
   showPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
 
+  registeredPhone = '+91 7012160065';
   forgotPassword = false;
   forgotStep = 1;
 
-  otp = '';
+  currentOtp = '';
   enteredOtp = '';
 
   newPassword = '';
   confirmPassword = '';
 
-  otpTimer = 80;
+  timerSeconds = 0;
+  isSendingOtp = false;
+  private otpTimerInterval: any = null;
 
-  login(): void {
-
-    if (!this.username || !this.password) {
-      alert('Please enter username and password.');
-      return;
+  ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      (window as any).RaigonApp = this;
+      (window as any).toggleLoginPasswordVisibility = () => this.togglePassword();
+      (window as any).toggleResetNewPasswordVisibility = (field: string) => {
+        if (field === 'resetNewPassword') {
+          this.showNewPassword = !this.showNewPassword;
+        } else {
+          this.showConfirmPassword = !this.showConfirmPassword;
+        }
+        this.cdr.detectChanges();
+      };
     }
+  }
 
-    const savedPassword =
-      localStorage.getItem('raigon_saved_password');
+  ngOnDestroy(): void {
+    this.stopOTPTimer();
+  }
 
-    if (
-      savedPassword &&
-      this.password !== savedPassword &&
-      this.password !== 'raigon2026'
-    ) {
-      alert('Incorrect password.');
-      return;
+  get timerDisplay(): string {
+    const mins = String(Math.floor(this.timerSeconds / 60)).padStart(2, '0');
+    const secs = String(this.timerSeconds % 60).padStart(2, '0');
+    return `${mins}:${secs}`;
+  }
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+    this.cdr.detectChanges();
+  }
+
+  fillDemoCredentials(): void {
+    this.username = '';
+    this.password = '';
+    this.cdr.detectChanges();
+  }
+
+  toggleTheme(theme: string, showToast: boolean = true): void {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.add('dark-mode');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      document.body.classList.remove('dark-mode');
     }
+    localStorage.setItem('raigon_theme', theme);
+    if (showToast) {
+      this.toastService.info(`Theme switched to ${theme === 'dark' ? 'Dark Mode' : 'Light Mode'}`);
+    }
+    this.updateThemeIcon();
+  }
 
-    localStorage.setItem(
-      'raigon_logged_in',
-      'true'
-    );
+  toggleThemeMode(): void {
+    const currentTheme = localStorage.getItem('raigon_theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    this.toggleTheme(newTheme, true);
+  }
 
-    this.loginSuccess.emit();
+  updateThemeIcon(): void {
+    const currentTheme = localStorage.getItem('raigon_theme') || 'light';
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+      const icon = themeBtn.querySelector('i');
+      if (icon) {
+        if (currentTheme === 'dark') {
+          icon.className = 'fa-solid fa-sun';
+          themeBtn.title = 'Switch to Light Mode';
+        } else {
+          icon.className = 'fa-solid fa-moon';
+          themeBtn.title = 'Switch to Dark Mode';
+        }
+      }
+    }
+  }
 
-    this.router.navigate(['/dashboard']);
+  setLayoutDensity(density: string, showToast: boolean = true): void {
+    if (density === 'compact') {
+      document.documentElement.classList.add('compact-layout');
+    } else {
+      document.documentElement.classList.remove('compact-layout');
+    }
+    localStorage.setItem('raigon_layout_density', density);
+    if (showToast) {
+      this.toastService.info(`Layout set to ${density === 'compact' ? 'Compact' : 'Comfortable'} mode`);
+    }
+  }
+
+  checkAuth(): boolean {
+    const auth = this.authService.isAuthenticated();
+    const loginView = document.getElementById('loginView');
+    const appContainer = document.getElementById('appContainer');
+
+    if (auth) {
+      if (loginView) loginView.style.display = 'none';
+      if (appContainer) appContainer.style.display = 'flex';
+    } else {
+      if (loginView) loginView.style.display = 'flex';
+      if (appContainer) appContainer.style.display = 'none';
+    }
+    return auth;
+  }
+
+  // =========================================
+  // FORGOT PASSWORD MULTI-STEP FLOW METHODS
+  // =========================================
+
+  showForgotPasswordForm(): void {
+    this.forgotPassword = true;
+    this.goToStep1Phone();
+    this.cdr.detectChanges();
   }
 
   showForgotPassword(): void {
-    this.forgotPassword = true;
+    this.showForgotPasswordForm();
+  }
+
+  showLoginForm(): void {
+    this.stopOTPTimer();
+    this.forgotPassword = false;
     this.forgotStep = 1;
+    this.isSendingOtp = false;
+    this.cdr.detectChanges();
   }
 
   showLogin(): void {
-    this.forgotPassword = false;
+    this.showLoginForm();
+  }
+
+  goToStep1Phone(): void {
+    this.stopOTPTimer();
     this.forgotStep = 1;
+    this.isSendingOtp = false;
+    this.cdr.detectChanges();
   }
 
-  sendOtp(): void {
-
-    this.otp =
-      Math.floor(
-        1000 + Math.random() * 9000
-      ).toString();
-
-    this.enteredOtp = this.otp;
-
-    alert(
-      'Demo OTP: ' + this.otp
-    );
-
-    this.forgotStep = 2;
-
-    this.startTimer();
+  private generateOtp(): string {
+    return Math.floor(1000 + Math.random() * 9000).toString();
   }
 
-  startTimer(): void {
+  sendForgotPasswordOTP(e?: Event): void {
+    if (e) e.preventDefault();
+    const phone = (this.registeredPhone || '').trim();
 
-    this.otpTimer = 80;
-
-    const timer = setInterval(() => {
-
-      this.otpTimer--;
-
-      if (this.otpTimer <= 0) {
-        clearInterval(timer);
-      }
-
-    }, 1000);
-  }
-
-  verifyOtp(): void {
-
-    if (this.enteredOtp !== this.otp) {
-      alert('Incorrect OTP.');
+    if (!phone || phone.length < 7) {
+      this.toastService.error('Please enter a valid registered phone number.');
       return;
     }
 
-    this.forgotStep = 3;
+    this.isSendingOtp = true;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.isSendingOtp = false;
+      this.currentOtp = this.generateOtp();
+      this.enteredOtp = this.currentOtp;
+
+      this.toastService.success(
+        `WhatsApp OTP sent to ${phone}! Verification Code: ${this.currentOtp}`
+      );
+
+      this.forgotStep = 2;
+      this.startOTPTimer();
+      this.cdr.detectChanges();
+    }, 600);
   }
 
-  savePassword(): void {
+  sendOtp(e?: Event): void {
+    this.sendForgotPasswordOTP(e);
+  }
 
-    if (this.newPassword.length < 6) {
-      alert(
-        'Password must contain at least 6 characters.'
+  startOTPTimer(): void {
+    this.stopOTPTimer();
+    this.timerSeconds = 80;
+    this.cdr.detectChanges();
+
+    this.otpTimerInterval = setInterval(() => {
+      this.timerSeconds--;
+      if (this.timerSeconds <= 0) {
+        this.stopOTPTimer();
+      }
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
+  stopOTPTimer(): void {
+    if (this.otpTimerInterval) {
+      clearInterval(this.otpTimerInterval);
+      this.otpTimerInterval = null;
+    }
+  }
+
+  resendOTP(): void {
+    if (this.timerSeconds > 0) return;
+    this.currentOtp = this.generateOtp();
+    this.enteredOtp = this.currentOtp;
+
+    this.toastService.success(
+      `New WhatsApp OTP sent to ${this.registeredPhone || 'your phone'}! Code: ${this.currentOtp}`
+    );
+    this.startOTPTimer();
+    this.cdr.detectChanges();
+  }
+
+  verifyForgotPasswordOTP(e?: Event): void {
+    if (e) e.preventDefault();
+    const userOtp = (this.enteredOtp || '').trim();
+
+    if (!userOtp) {
+      this.toastService.error('Please enter the 4-digit verification code.');
+      return;
+    }
+
+    if (userOtp !== this.currentOtp) {
+      this.toastService.error(
+        `Incorrect OTP code. Please check your WhatsApp message. (Hint: ${this.currentOtp})`
       );
       return;
     }
 
-    if (
-      this.newPassword !== this.confirmPassword
-    ) {
-      alert('Passwords do not match.');
+    this.stopOTPTimer();
+    this.toastService.success('OTP Verified Successfully! Please create your new password.');
+    this.forgotStep = 3;
+    this.cdr.detectChanges();
+  }
+
+  submitNewPassword(e?: Event): void {
+    if (e) e.preventDefault();
+    const pass1 = (this.newPassword || '').trim();
+    const pass2 = (this.confirmPassword || '').trim();
+
+    if (!pass1 || !pass2) {
+      this.toastService.error('Please enter your new password in both fields.');
       return;
     }
 
-    localStorage.setItem(
-      'raigon_saved_password',
-      this.newPassword
-    );
+    if (pass1.length < 6) {
+      this.toastService.error('Password must be at least 6 characters long.');
+      return;
+    }
 
-    alert('Password updated successfully.');
+    if (pass1 !== pass2) {
+      this.toastService.error('Passwords do not match! Please re-enter the same password.');
+      return;
+    }
 
-    this.showLogin();
+    this.password = pass1;
+
+    this.toastService.success('Password updated successfully! You can now sign in.');
+    this.showLoginForm();
+    this.cdr.detectChanges();
   }
 
-  togglePassword(): void {
-    this.showPassword =
-      !this.showPassword;
+  // =========================================
+  // AUTHENTICATION (LOGIN & LOGOUT)
+  // =========================================
+
+  login(e?: Event): void {
+    if (e) e.preventDefault();
+    const email = (this.username || '').trim();
+    const pass = (this.password || '').trim();
+
+    if (!email || !pass) {
+      this.toastService.error('Please enter phone number/username and password.');
+      return;
+    }
+
+    this.authService.login({ username: email, password: pass }).subscribe({
+      next: () => {
+        this.toastService.success('Welcome to Raigon Arts Management System!');
+        this.loginSuccess.emit();
+        this.checkAuth();
+        this.navigateTo('dashboard');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        const errorMsg =
+          err?.error?.message ||
+          err?.error?.title ||
+          (err?.status === 0
+            ? 'Cannot connect to API server. Please check if the .NET backend is running.'
+            : 'Invalid username or password. Please try again.');
+        this.toastService.error(errorMsg);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.toastService.info('Logged out successfully.');
+    this.checkAuth();
+    this.navigateTo('login');
+    this.cdr.detectChanges();
+  }
+
+  navigateTo(view: string): void {
+    this.router.navigate([`/${view}`]);
   }
 }

@@ -6,9 +6,7 @@
     </p>
   </div>
 
-  <button
-    class="btn btn-primary"
-    (click)="openCustomerModal()">
+  <button class="btn btn-primary" (click)="openCustomerModal()">
     <i class="fa-solid fa-user-plus"></i> Add New Customer
   </button>
 </div>
@@ -17,19 +15,16 @@
 <div class="filter-tabs">
 
   @for (tab of tabs; track tab) {
-    <button
-      class="tab-btn"
-      [class.active]="currentTab === tab"
-      (click)="setTab(tab)">
+  <button class="tab-btn" [class.active]="currentTab === tab" (click)="setTab(tab)">
 
-      {{ tab }}
-      {{
-        tab === 'All'
-          ? '(' + customers.length + ')'
-          : '(' + getTabCount(tab) + ')'
-      }}
+    {{ tab }}
+    {{
+    tab === 'All'
+    ? '(' + customers.length + ')'
+    : '(' + getTabCount(tab) + ')'
+    }}
 
-    </button>
+  </button>
   }
 
 </div>
@@ -43,10 +38,7 @@
       <div class="table-search">
         <i class="fa-solid fa-magnifying-glass"></i>
 
-        <input
-          type="text"
-          placeholder="Search order ID, customer name..."
-          [value]="searchQuery"
+        <input type="text" placeholder="Search order ID, customer name..." [value]="searchQuery"
           (input)="handleSearch($any($event.target).value)">
       </div>
 
@@ -77,133 +69,114 @@
 
         @if (filtered.length === 0) {
 
-          <tr>
-            <td
-              colspan="11"
-              style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <tr>
+          <td colspan="11" style="text-align: center; padding: 40px; color: var(--text-muted);">
 
-              No orders found matching tab filter "{{ currentTab }}".
+            No orders found matching tab filter "{{ currentTab }}".
 
-            </td>
-          </tr>
+          </td>
+        </tr>
 
         } @else {
 
-          @for (ord of filtered; track ord.id) {
+        @for (ord of filtered; track ord.id) {
 
-            <tr>
+        <tr>
 
-              <td class="font-bold text-primary">
-                {{ ord.id }}
-              </td>
+          <td class="font-bold text-primary">
+            {{ ord.id }}
+          </td>
 
-              <td class="font-semibold">
-                {{ ord.name }}
-              </td>
+          <td class="font-semibold">
+            {{ ord.name }}
+          </td>
 
-              <td>
-                {{ ord.phone }}
-              </td>
+          <td>
+            {{ ord.phone }}
+          </td>
 
-              <td>
-                {{ ord.photos ? ord.photos.length : 0 }} Photos
-              </td>
+          <td>
+            {{ ord.photos ? ord.photos.length : 0 }} Photos
+          </td>
 
-              <td>
-                <div class="font-medium">
-                  {{ ord.frameSize }}
-                </div>
+          <td>
+            <div class="font-medium">
+              {{ ord.frameSize }}
+            </div>
 
-                <div class="text-xs text-muted">
-                  {{ ord.frameType }}
-                </div>
-              </td>
+            <div class="text-xs text-muted">
+              {{ ord.frameType }}
+            </div>
+          </td>
 
-              <td class="font-bold">
-                {{ ord.quantity }}
-              </td>
+          <td class="font-bold">
+            {{ ord.quantity }}
+          </td>
 
-              <td class="font-bold">
-                ₹{{ formatAmount(ord.totalAmount) }}
-              </td>
+          <td class="font-bold">
+            ₹{{ formatAmount(ord.totalAmount) }}
+          </td>
 
-              <td>
+          <td>
 
-                <span
-                  class="badge"
-                  [class.badge-completed]="ord.paymentStatus === 'Paid'"
-                  [class.badge-pending]="ord.paymentStatus === 'Partial'"
-                  [class.badge-cancelled]="
+            <span class="badge" [class.badge-completed]="ord.paymentStatus === 'Paid'"
+              [class.badge-pending]="ord.paymentStatus === 'Partial'" [class.badge-cancelled]="
                     ord.paymentStatus !== 'Paid' &&
                     ord.paymentStatus !== 'Partial'
                   ">
 
-                  {{ ord.paymentStatus }}
+              {{ ord.paymentStatus }}
 
-                </span>
+            </span>
 
-              </td>
+          </td>
 
-              <td>
+          <td>
 
-                <select
-                  class="status-select-badge"
-                  [class.status-badge-pending]="ord.orderStatus === 'Pending'"
-                  [class.status-badge-progress]="ord.orderStatus === 'In Progress'"
-                  [class.status-badge-completed]="ord.orderStatus === 'Completed'"
-                  [class.status-badge-cancelled]="ord.orderStatus === 'Cancelled'"
-                  [value]="ord.orderStatus"
-                  (change)="updateOrderStatus(ord.id, $any($event.target).value)">
+            <select class="status-select-badge" [class.status-badge-pending]="ord.orderStatus === 'Pending'"
+              [class.status-badge-progress]="ord.orderStatus === 'In Progress'"
+              [class.status-badge-completed]="ord.orderStatus === 'Completed'"
+              [class.status-badge-cancelled]="ord.orderStatus === 'Cancelled'" [value]="ord.orderStatus"
+              (change)="updateOrderStatus(ord.id, $any($event.target).value)">
 
-                  @for (status of statuses; track status) {
-                    <option
-                      [value]="status"
-                      [selected]="status === ord.orderStatus">
-                      {{ status }}
-                    </option>
-                  }
+              @for (status of statuses; track status) {
+              <option [value]="status" [selected]="status === ord.orderStatus">
+                {{ status }}
+              </option>
+              }
 
-                </select>
+            </select>
 
-              </td>
+          </td>
 
-              <td class="text-sm">
-                {{ ord.deliveryDate || 'TBD' }}
-              </td>
+          <td class="text-sm">
+            {{ formatDate(ord.deliveryDate) || 'TBD' }}
+          </td>
 
-              <td>
+          <td>
 
-                <div class="table-actions">
+            <div class="table-actions">
 
-                  <button
-                    class="action-btn"
-                    title="View Order Details"
-                    (click)="viewCustomer(ord.id)">
-                    <i class="fa-solid fa-eye"></i>
-                  </button>
+              <button class="action-btn" title="View Order Details" (click)="viewCustomer(ord.id)">
+                <i class="fa-solid fa-eye"></i>
+              </button>
 
-                  <button
-                    class="action-btn"
-                    style="color: #25D366; background: rgba(37, 211, 102, 0.12);"
-                    title="Send WhatsApp Order Receipt"
-                    (click)="sendWhatsAppReceipt(ord.id)">
-                    <i class="fa-brands fa-whatsapp"></i>
-                  </button>
+              <button class="action-btn" style="color: #25D366; background: rgba(37, 211, 102, 0.12);"
+                title="Send WhatsApp Order Receipt" (click)="sendWhatsAppReceipt(ord.id)">
+                <i class="fa-brands fa-whatsapp"></i>
+              </button>
 
-                  <button
-                    class="action-btn edit"
-                    title="Edit Order"
-                    (click)="editCustomer(ord.id)">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                  </button>
+              <button class="action-btn edit" title="Edit Order" (click)="editCustomer(ord.id)">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
 
-                </div>
+            </div>
 
-              </td>
+          </td>
 
-            </tr>
+        </tr>
 
-          }
+        }
 
         }
 

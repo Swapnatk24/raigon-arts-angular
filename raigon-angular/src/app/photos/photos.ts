@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+﻿import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -181,12 +181,7 @@ export class Photos implements OnInit, OnDestroy {
   }
 
   openPhoto(photo: PhotoItem): void {
-
-    window.open(
-      photo.url,
-      '_blank'
-    );
-
+    this.customerService.openLightbox(photo.url, `${photo.name} - ${photo.customerName}`);
   }
 
   trackByPhotoId(
