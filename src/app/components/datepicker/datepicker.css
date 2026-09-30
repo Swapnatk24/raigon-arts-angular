@@ -14,3 +14,11 @@
 .vuexy-calendar-popover.active {
   transform: translateY(0);
 }
+
+.cal-day.disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  background: none !important;
+  color: var(--text-light, #a0aec0) !important;
+}

@@ -306,7 +306,7 @@
 
       <!-- Quantity -->
       <td class="font-bold">
-        {{ cust.quantity }}
+        {{ cust.quantity ? cust.quantity : '' }}
       </td>
 
 
@@ -320,6 +320,7 @@
       <td>
 
         <span
+          *ngIf="cust.orderStatus"
           class="badge"
           [ngClass]="getStatusBadgeClass(cust.orderStatus)">
 

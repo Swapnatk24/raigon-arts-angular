@@ -1,4 +1,4 @@
-﻿import { ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -335,6 +335,6 @@ export class Login implements OnInit, OnDestroy {
   }
 
   navigateTo(view: string): void {
-    this.router.navigate([`/${view}`]);
+    this.router.navigate([`/${view}`], { replaceUrl: true });
   }
 }

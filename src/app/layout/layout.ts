@@ -1,4 +1,4 @@
-﻿import { AfterViewInit, ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 
@@ -57,6 +57,11 @@ export class Layout implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login'], { replaceUrl: true });
+      return;
+    }
+
     (window as any).RaigonApp = this;
     this.initSettings();
     this.applyCustomLogo();
@@ -259,6 +264,6 @@ export class Layout implements OnInit, AfterViewInit, OnDestroy {
     this.authService.logout();
     this.toastService.info('Logged out successfully.');
     this.logoutEvent.emit();
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 }

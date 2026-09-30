@@ -110,7 +110,7 @@
           </td>
 
           <td class="font-bold">
-            {{ ord.quantity }}
+            {{ ord.quantity ? ord.quantity : '' }}
           </td>
 
           <td class="font-bold">
@@ -119,7 +119,7 @@
 
           <td>
 
-            <span class="badge" [class.badge-completed]="ord.paymentStatus === 'Paid'"
+            <span *ngIf="ord.paymentStatus" class="badge" [class.badge-completed]="ord.paymentStatus === 'Paid'"
               [class.badge-pending]="ord.paymentStatus === 'Partial'" [class.badge-cancelled]="
                     ord.paymentStatus !== 'Paid' &&
                     ord.paymentStatus !== 'Partial'
@@ -133,7 +133,7 @@
 
           <td>
 
-            <select class="status-select-badge" [class.status-badge-pending]="ord.orderStatus === 'Pending'"
+            <select *ngIf="ord.orderStatus" class="status-select-badge" [class.status-badge-pending]="ord.orderStatus === 'Pending'"
               [class.status-badge-progress]="ord.orderStatus === 'In Progress'"
               [class.status-badge-completed]="ord.orderStatus === 'Completed'"
               [class.status-badge-cancelled]="ord.orderStatus === 'Cancelled'" [value]="ord.orderStatus"

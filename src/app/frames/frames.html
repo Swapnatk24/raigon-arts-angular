@@ -78,7 +78,7 @@
           </td>
 
           <td>
-            {{ s.category }}
+            {{ (s.category === 'Custom Size' || s.category === 'Customize' || s.category?.toLowerCase() === 'custom') ? 'Customize' : s.category }}
           </td>
 
           <td class="font-semibold">

@@ -99,8 +99,10 @@ export class Dashboard implements OnInit, OnDestroy {
         return 'badge-delivered';
       case 'Cancelled':
         return 'badge-cancelled';
-      default:
+      case 'Pending':
         return 'badge-pending';
+      default:
+        return '';
     }
   }
 
