@@ -7,7 +7,8 @@ import { ToastService } from '../services/toast.service';
 import {
   Customer,
   CustomerPhoto,
-  CustomerService
+  CustomerService,
+  parseDateTimestamp
 } from '../services/customer.service';
 
 @Component({
@@ -74,6 +75,7 @@ export class Customers implements OnInit, OnDestroy {
         (c.phone && c.phone.includes(query)) ||
         (c.id && c.id.toLowerCase().includes(query)) ||
         (c.city && c.city.toLowerCase().includes(query)) ||
+        (c.address && c.address.toLowerCase().includes(query)) ||
         (c.frameSize && c.frameSize.toLowerCase().includes(query)) ||
         (c.frameType && c.frameType.toLowerCase().includes(query));
 
@@ -83,19 +85,13 @@ export class Customers implements OnInit, OnDestroy {
     }).sort((a, b) => {
       if (this.sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '');
       if (this.sortBy === 'amount_desc') return (Number(b.totalAmount) || 0) - (Number(a.totalAmount) || 0);
-      if (this.sortBy === 'date_asc') return this.parseDate(a.orderDate) - this.parseDate(b.orderDate);
+      if (this.sortBy === 'date_asc') return parseDateTimestamp(a.orderDate) - parseDateTimestamp(b.orderDate);
       
       // Default: Newest first (date_desc)
-      const diff = this.parseDate(b.orderDate) - this.parseDate(a.orderDate);
+      const diff = parseDateTimestamp(b.orderDate) - parseDateTimestamp(a.orderDate);
       if (diff !== 0) return diff;
-      return (b.id || '').localeCompare(a.id || '');
+      return (b.id || '').localeCompare(a.id || '', undefined, { numeric: true });
     });
-  }
-
-  private parseDate(d: string | undefined): number {
-    if (!d) return 0;
-    const time = new Date(d).getTime();
-    return isNaN(time) ? 0 : time;
   }
 
   get totalPages(): number {
@@ -201,32 +197,69 @@ export class Customers implements OnInit, OnDestroy {
 
     const headers = ['Customer ID', 'Customer Name', 'Phone', 'City', 'Address', 'Frame Size', 'Frame Type', 'Quantity', 'Total Amount', 'Advance Paid', 'Balance', 'Payment Status', 'Order Status', 'Order Date'];
     const rows = list.map(c => [
-      `"${c.id}"`,
-      `"${c.name}"`,
-      `"${c.phone}"`,
-      `"${c.city || ''}"`,
+      `"${(c.id || '').replace(/"/g, '""')}"`,
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `="` + (c.phone || '').replace(/"/g, '""') + `"`,
+      `"${(c.city || '').replace(/"/g, '""')}"`,
       `"${(c.address || '').replace(/"/g, '""')}"`,
-      `"${c.frameSize}"`,
-      `"${c.frameType}"`,
-      c.quantity,
-      c.totalAmount,
-      c.advancePaid,
-      c.balanceAmount,
-      `"${c.paymentStatus}"`,
-      `"${c.orderStatus}"`,
-      `"${c.orderDate}"`
+      `"${(c.frameSize || '').replace(/"/g, '""')}"`,
+      `"${(c.frameType || '').replace(/"/g, '""')}"`,
+      (c.quantity !== undefined && c.quantity !== null) ? c.quantity : '',
+      c.totalAmount ?? 0,
+      c.advancePaid ?? 0,
+      c.balanceAmount ?? 0,
+      `"${(c.paymentStatus || '').replace(/"/g, '""')}"`,
+      `"${(c.orderStatus || '').replace(/"/g, '""')}"`,
+      `"${this.formatDateForCSV(c.orderDate).replace(/"/g, '""')}"`
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const BOM = '\uFEFF';
+    const csvContent = BOM + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `Raigon_Customers_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
     this.toastService.success(`Exported ${list.length} customer records to CSV.`);
+  }
+
+  private formatDateForCSV(val: string | undefined | null): string {
+    if (!val || val === 'N/A' || val === 'TBD') return '';
+    const str = String(val).trim();
+
+    // If already in DD-MM-YYYY or DD/MM/YYYY format
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmyMatch) {
+      const dd = dmyMatch[1].padStart(2, '0');
+      const mm = dmyMatch[2].padStart(2, '0');
+      const yyyy = dmyMatch[3];
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // If in YYYY-MM-DD or YYYY/MM/DD format
+    const ymdMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (ymdMatch) {
+      const yyyy = ymdMatch[1];
+      const mm = ymdMatch[2].padStart(2, '0');
+      const dd = ymdMatch[3].padStart(2, '0');
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // If text date like "Sep 17, 2026", "17 Sep 2026", etc.
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    return str;
   }
 
   getStatusBadgeClass(status: string): string {
@@ -234,7 +267,8 @@ export class Customers implements OnInit, OnDestroy {
       case 'In Progress': return 'badge-in-progress';
       case 'Completed': return 'badge-completed';
       case 'Cancelled': return 'badge-cancelled';
-      default: return 'badge-pending';
+      case 'Pending': return 'badge-pending';
+      default: return '';
     }
   }
 

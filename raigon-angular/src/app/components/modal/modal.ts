@@ -7,12 +7,14 @@ import {
   Customer,
   CustomerPhoto,
   CustomerService,
-  FrameSize
+  FrameSize,
+  resolvePhotoUrl
 } from '../../services/customer.service';
 import { ToastService } from '../../services/toast.service';
 import { DatePickerComponent } from '../datepicker/datepicker';
 
 export interface PhotoConfigItem {
+  id?: string;
   name: string;
   url: string;
   size?: string;
@@ -26,6 +28,43 @@ export interface PhotoConfigItem {
   orientation?: string;
   quantity?: number;
   notes?: string;
+  file?: File;
+}
+
+export interface CustomerFormDraft {
+  customerName: string;
+  customerPhone: string;
+  alternativePhone: string;
+  customerCity: string;
+  customerAddress: string;
+  customerPincode: string;
+  frameConfigMode: 'same' | 'individual';
+  frameSize: string;
+  unit: string;
+  customWidth: string;
+  customHeight: string;
+  frameType: string;
+  frameMaterial: string;
+  frameColor: string;
+  orientation: string;
+  quantity: number | null;
+  notes: string;
+  selectedPhotos: PhotoConfigItem[];
+  orderDate: string;
+  deliveryDate: string;
+  totalAmount: number | null;
+  advancePaid: number | null;
+  paymentStatus: string;
+  orderStatus: string;
+}
+
+export interface FrameSizeDraft {
+  formSizeId: string;
+  formSizeName: string;
+  formSizeWidth: number | null;
+  formSizeHeight: number | null;
+  formSizeUnit: string;
+  formSizeCategory: string;
 }
 
 @Component({
@@ -48,6 +87,12 @@ export class ModalComponent implements OnInit, OnDestroy {
   showFrameSizeModal = false;
   showLightboxModal = false;
   showConfirmModal = false;
+
+  // Unsaved Form Drafts (persists across modal close/exit without saving)
+  private addCustomerDraft: CustomerFormDraft | null = null;
+  private editCustomerDrafts: { [customerId: string]: CustomerFormDraft } = {};
+  private addFrameSizeDraft: FrameSizeDraft | null = null;
+  private editFrameSizeDrafts: { [sizeId: string]: FrameSizeDraft } = {};
 
   confirmTitle = 'Confirm Action';
   confirmMessage = 'Are you sure you want to proceed?';
@@ -103,6 +148,55 @@ export class ModalComponent implements OnInit, OnDestroy {
       }
     }
     return '';
+  }
+
+  minDeliveryDate = 'today';
+
+  get deliveryDateError(): string {
+    if (!this.deliveryDate || !this.deliveryDate.trim()) {
+      return '';
+    }
+    const parsed = this.parseDateString(this.deliveryDate);
+    if (!parsed) {
+      return 'Invalid date format';
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    parsed.setHours(0, 0, 0, 0);
+    if (parsed.getTime() < today.getTime()) {
+      return 'Expected delivery date cannot be a past date';
+    }
+    return '';
+  }
+
+  private parseDateString(val: string): Date | null {
+    if (!val) return null;
+    const trimmed = val.trim();
+    const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1;
+      const year = parseInt(dmyMatch[3], 10);
+      const d = new Date(year, month, day);
+      if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+        return d;
+      }
+    }
+    const ymdMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (ymdMatch) {
+      const year = parseInt(ymdMatch[1], 10);
+      const month = parseInt(ymdMatch[2], 10) - 1;
+      const day = parseInt(ymdMatch[3], 10);
+      const d = new Date(year, month, day);
+      if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) {
+        return d;
+      }
+    }
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+    return null;
   }
 
   // Restrict Customer Name: letters and spaces only
@@ -197,6 +291,9 @@ export class ModalComponent implements OnInit, OnDestroy {
   paymentStatus = '';
   orderStatus = '';
 
+  // Frame Sizes list for dropdowns
+  availableFrameSizes: FrameSize[] = [];
+
   // Frame Size Form
   formSizeId = '';
   formSizeName = '';
@@ -217,6 +314,24 @@ export class ModalComponent implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       (window as any).RaigonModal = this;
     }
+
+    this.subscription.add(
+      this.customerService.frameSizes$.subscribe(sizes => {
+        this.availableFrameSizes = (sizes || [])
+          .map(s => ({
+            ...s,
+            category: (s.category === 'Custom Size' || s.category === 'Customize' || s.category?.toLowerCase() === 'custom') ? 'Customize' : s.category,
+            name: this.cleanSize(s.name)
+          }));
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.RaigonSelect2) {
+            window.RaigonSelect2.enhanceAll();
+          }
+        }, 0);
+      })
+    );
 
     this.subscription.add(
       this.customerService.openCustomerModal$.subscribe(customerToEdit => {
@@ -251,6 +366,13 @@ export class ModalComponent implements OnInit, OnDestroy {
         this.confirm(options);
       })
     );
+
+    this.customerService.fetchFrameSizes().subscribe();
+  }
+
+  cleanSize(size?: string): string {
+    if (!size) return '';
+    return size.replace(/\s*inch(es)?|\s*in\b/gi, '').trim();
   }
 
   // =========================================
@@ -279,33 +401,42 @@ export class ModalComponent implements OnInit, OnDestroy {
   private normalizeFrameSize(size?: string, customWidth?: number | string, customHeight?: number | string): string {
     if (customWidth || customHeight) {
       if (!size || size.toLowerCase().includes('custom')) {
-        return 'Custom Size';
+        return 'Customize';
       }
     }
     if (!size) return '';
-    const s = size.trim().toLowerCase();
-    if (s.includes('custom')) return 'Custom Size';
-    if (s.includes('4') && s.includes('6')) return '4 × 6 ';
-    if (s.includes('5') && s.includes('7')) return '5 × 7 ';
-    if (s.includes('8') && s.includes('10')) return '8 × 10 ';
-    if (s.includes('8') && s.includes('12')) return '8 × 12 ';
-    if (s.includes('12') && s.includes('18')) return '12 × 18 ';
-    if (s.includes('16') && s.includes('20')) return '16 × 20 ';
-    if (s.includes('20') && s.includes('30')) return '20 × 30 ';
+    const s = this.cleanSize(size);
+    if (s.toLowerCase().includes('custom')) return 'Customize';
 
-    const options = ['4 × 6 ', '5 × 7 ', '8 × 10 ', '8 × 12 ', '12 × 18 ', '16 × 20 ', '20 × 30 ', 'Custom Size'];
-    const matched = options.find(o => o.trim().toLowerCase() === s);
-    if (matched) return matched;
+    // Direct match in available frame sizes
+    const exact = this.availableFrameSizes.find(f => this.cleanSize(f.name).toLowerCase() === s.toLowerCase());
+    if (exact) return this.cleanSize(exact.name);
 
-    return size;
+    const match = s.match(/(\d+(?:\.\d+)?)\s*(?:[×xX*]|\s+by\s+|\s+)\s*(\d+(?:\.\d+)?)/);
+    if (match) {
+      const w = parseFloat(match[1]);
+      const h = parseFloat(match[2]);
+      const sizeMatch = this.availableFrameSizes.find(f =>
+        (Number(f.width) === w && Number(f.height) === h) ||
+        (Number(f.width) === h && Number(f.height) === w)
+      );
+      if (sizeMatch) return this.cleanSize(sizeMatch.name);
+    }
+
+    const partial = this.availableFrameSizes.find(f => this.cleanSize(f.name).toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(this.cleanSize(f.name).toLowerCase()));
+    if (partial) return this.cleanSize(partial.name);
+
+    return s;
   }
 
   private normalizeUnit(unit?: string): string {
     if (!unit) return '';
     const u = unit.trim().toLowerCase();
-    if (u.includes('cm') || u.includes('cent')) return 'cm';
-    if (u.includes('inch') || u.includes('in')) return 'inch';
-    return unit;
+    if (u === 'cm' || u.includes('cent') || u.includes('cm')) return 'cm';
+    if (u === 'inch' || u.includes('in')) return 'inch';
+    const options = ['inch', 'cm'];
+    const matched = options.find(o => o.toLowerCase() === u);
+    return matched || '';
   }
 
   private normalizeFrameType(type?: string): string {
@@ -314,11 +445,11 @@ export class ModalComponent implements OnInit, OnDestroy {
     if (t.includes('wood')) return 'Wooden Frame';
     if (t.includes('prem')) return 'Premium Frame';
     if (t.includes('class')) return 'Classic Frame';
-    if (t.includes('canvas')) return 'Canvas Float';
+    if (t.includes('canvas') || t.includes('float')) return 'Canvas Float';
     if (t.includes('box')) return 'Box Frame';
     const options = ['Wooden Frame', 'Premium Frame', 'Classic Frame', 'Canvas Float', 'Box Frame'];
     const matched = options.find(o => o.toLowerCase() === t);
-    return matched || type;
+    return matched || t;
   }
 
   private normalizeOrientation(orientation?: string): string {
@@ -327,16 +458,20 @@ export class ModalComponent implements OnInit, OnDestroy {
     if (o.includes('land') || o.includes('horiz')) return 'Landscape';
     if (o.includes('port') || o.includes('vert')) return 'Portrait';
     if (o.includes('squ')) return 'Square';
-    return orientation;
+    const options = ['Landscape', 'Portrait', 'Square'];
+    const matched = options.find(opt => opt.toLowerCase() === o);
+    return matched || o;
   }
 
   private normalizePaymentStatus(status?: string): string {
     if (!status) return '';
     const s = status.trim().toLowerCase();
-    if (s.includes('unpaid') || s.includes('not paid') || s.includes('due')) return 'Unpaid';
+    if (s.includes('unpaid') || s.includes('not paid') || s.includes('due') || s.includes('pend')) return 'Unpaid';
     if (s.includes('part')) return 'Partial';
     if (s.includes('paid') || s.includes('settle')) return 'Paid';
-    return status;
+    const options = ['Unpaid', 'Partial', 'Paid'];
+    const matched = options.find(o => o.toLowerCase() === s);
+    return matched || s;
   }
 
   private normalizeOrderStatus(status?: string): string {
@@ -346,7 +481,72 @@ export class ModalComponent implements OnInit, OnDestroy {
     if (s.includes('pend') || s.includes('new')) return 'Pending';
     if (s.includes('comp') || s.includes('deliv') || s.includes('done')) return 'Completed';
     if (s.includes('canc')) return 'Cancelled';
-    return status;
+    const options = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+    const matched = options.find(o => o.toLowerCase() === s);
+    return matched || s;
+  }
+
+  // =========================================
+  // DRAFT CAPTURE & RESTORE HELPERS
+  // =========================================
+  private captureCurrentCustomerDraft(): CustomerFormDraft {
+    return {
+      customerName: this.customerName,
+      customerPhone: this.customerPhone,
+      alternativePhone: this.alternativePhone,
+      customerCity: this.customerCity,
+      customerAddress: this.customerAddress,
+      customerPincode: this.customerPincode,
+      frameConfigMode: this.frameConfigMode,
+      frameSize: this.frameSize,
+      unit: this.unit,
+      customWidth: this.customWidth,
+      customHeight: this.customHeight,
+      frameType: this.frameType,
+      frameMaterial: this.frameMaterial,
+      frameColor: this.frameColor,
+      orientation: this.orientation,
+      quantity: this.quantity,
+      notes: this.notes,
+      selectedPhotos: this.selectedPhotos.map(p => ({ ...p })),
+      orderDate: this.orderDate,
+      deliveryDate: this.deliveryDate,
+      totalAmount: this.totalAmount,
+      advancePaid: this.advancePaid,
+      paymentStatus: this.paymentStatus,
+      orderStatus: this.orderStatus
+    };
+  }
+
+  private applyCustomerDraft(draft: CustomerFormDraft): void {
+    this.nameTouched = false;
+    this.phoneTouched = false;
+    this.isSubmitted = false;
+
+    this.customerName = draft.customerName || '';
+    this.customerPhone = draft.customerPhone || '';
+    this.alternativePhone = draft.alternativePhone || '';
+    this.customerCity = draft.customerCity || '';
+    this.customerAddress = draft.customerAddress || '';
+    this.customerPincode = draft.customerPincode || '';
+    this.frameConfigMode = draft.frameConfigMode || 'same';
+    this.frameSize = draft.frameSize || '';
+    this.unit = draft.unit || '';
+    this.customWidth = draft.customWidth || '';
+    this.customHeight = draft.customHeight || '';
+    this.frameType = draft.frameType || '';
+    this.frameMaterial = draft.frameMaterial || '';
+    this.frameColor = draft.frameColor || '';
+    this.orientation = draft.orientation || '';
+    this.quantity = draft.quantity ?? null;
+    this.notes = draft.notes || '';
+    this.selectedPhotos = (draft.selectedPhotos || []).map(p => ({ ...p }));
+    this.orderDate = this.formatDateDDMMYYYY(draft.orderDate) || this.getToday();
+    this.deliveryDate = draft.deliveryDate || '';
+    this.totalAmount = draft.totalAmount ?? null;
+    this.advancePaid = draft.advancePaid ?? null;
+    this.paymentStatus = draft.paymentStatus || '';
+    this.orderStatus = draft.orderStatus || '';
   }
 
   // =========================================
@@ -355,76 +555,122 @@ export class ModalComponent implements OnInit, OnDestroy {
   openAddCustomerModal(defaultDeliveryDate?: string): void {
     this.isEditMode = false;
     this.editingCustomerId = null;
-    this.resetForm();
-    if (defaultDeliveryDate) {
-      this.deliveryDate = this.formatDateDDMMYYYY(defaultDeliveryDate);
+
+    if (this.addCustomerDraft) {
+      this.applyCustomerDraft(this.addCustomerDraft);
+      if (defaultDeliveryDate && !this.deliveryDate) {
+        this.deliveryDate = this.formatDateDDMMYYYY(defaultDeliveryDate);
+      }
+    } else {
+      this.resetForm();
+      if (defaultDeliveryDate) {
+        this.deliveryDate = this.formatDateDDMMYYYY(defaultDeliveryDate);
+      }
     }
+
     this.showAddCustomerModal = true;
     document.body.style.overflow = 'hidden';
     this.cdr.detectChanges();
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && window.RaigonSelect2) {
+        window.RaigonSelect2.enhanceAll();
+      }
+    }, 0);
   }
 
   openEditCustomerModal(customer: Customer): void {
     this.isEditMode = true;
     this.editingCustomerId = customer.id;
-    this.resetForm();
 
-    this.customerName = customer.name || '';
-    this.customerPhone = customer.phone || '';
-    this.alternativePhone = customer.alternativePhone || customer.altPhone || '';
-    this.customerCity = customer.city || 'Trivandrum';
-    this.customerAddress = customer.address || '';
-    this.customerPincode = customer.pincode || '';
-
-    this.frameSize = this.normalizeFrameSize(customer.frameSize, customer.customWidth, customer.customHeight);
-    this.unit = this.normalizeUnit(customer.unit);
-    this.customWidth = customer.customWidth ? String(customer.customWidth) : '';
-    this.customHeight = customer.customHeight ? String(customer.customHeight) : '';
-    this.frameType = this.normalizeFrameType(customer.frameType);
-    this.frameMaterial = customer.frameMaterial || customer.material || '';
-    this.frameColor = customer.frameColor || customer.color || '';
-    this.orientation = this.normalizeOrientation(customer.orientation);
-    this.quantity = customer.quantity ? Number(customer.quantity) : null;
-    this.notes = customer.notes || '';
-
-    this.orderDate = customer.orderDate || this.getToday();
-    this.deliveryDate = this.formatDateDDMMYYYY(customer.deliveryDate);
-    this.totalAmount = customer.totalAmount || 0;
-    this.advancePaid = customer.advancePaid || 0;
-    this.paymentStatus = this.normalizePaymentStatus(customer.paymentStatus);
-    this.orderStatus = this.normalizeOrderStatus(customer.orderStatus);
-    this.frameConfigMode = customer.frameConfigMode || 'same';
-
-    if (customer.photos && customer.photos.length > 0) {
-      this.selectedPhotos = customer.photos.map(p => ({
-        name: p.name,
-        url: p.url,
-        size: p.size || '2.5 MB',
-        frameSize: this.normalizeFrameSize(
-          p.frameSize || (customer.frameConfigMode === 'same' ? customer.frameSize : ''),
-          p.customWidth,
-          p.customHeight
-        ),
-        unit: this.normalizeUnit(p.unit || (customer.frameConfigMode === 'same' ? customer.unit : '')),
-        customWidth: p.customWidth ? String(p.customWidth) : '',
-        customHeight: p.customHeight ? String(p.customHeight) : '',
-        frameType: this.normalizeFrameType(p.frameType || (customer.frameConfigMode === 'same' ? customer.frameType : '')),
-        frameMaterial: p.frameMaterial || p.material || (customer.frameConfigMode === 'same' ? (customer.frameMaterial || customer.material) : '') || '',
-        frameColor: p.frameColor || p.color || (customer.frameConfigMode === 'same' ? (customer.frameColor || customer.color) : '') || '',
-        orientation: this.normalizeOrientation(p.orientation || (customer.frameConfigMode === 'same' ? customer.orientation : '')),
-        quantity: p.quantity ? Number(p.quantity) : (customer.frameConfigMode === 'same' ? (customer.quantity ? Number(customer.quantity) : undefined) : undefined),
-        notes: p.notes || ''
-      }));
+    if (this.editCustomerDrafts[customer.id]) {
+      this.applyCustomerDraft(this.editCustomerDrafts[customer.id]);
     } else {
-      this.selectedPhotos = [];
+      this.resetForm();
+      this.isEditMode = true;
+      this.editingCustomerId = customer.id;
+
+      this.customerName = customer.name || '';
+      this.customerPhone = customer.phone || '';
+      this.alternativePhone = customer.alternativePhone || customer.altPhone || '';
+      this.customerCity = customer.city || 'Trivandrum';
+      this.customerAddress = customer.address || '';
+      this.customerPincode = customer.pincode || '';
+
+      const firstPhoto = (customer.photos && customer.photos.length > 0) ? customer.photos[0] : null;
+
+      this.frameConfigMode = customer.frameConfigMode || 'same';
+
+      this.frameSize = this.normalizeFrameSize(
+        customer.frameSize || firstPhoto?.frameSize || '',
+        customer.customWidth || firstPhoto?.customWidth,
+        customer.customHeight || firstPhoto?.customHeight
+      );
+      this.unit = this.normalizeUnit(
+        customer.unit || firstPhoto?.unit || ''
+      );
+      this.customWidth = customer.customWidth ? String(customer.customWidth) : (firstPhoto?.customWidth ? String(firstPhoto.customWidth) : '');
+      this.customHeight = customer.customHeight ? String(customer.customHeight) : (firstPhoto?.customHeight ? String(firstPhoto.customHeight) : '');
+      this.frameType = this.normalizeFrameType(customer.frameType || firstPhoto?.frameType || '');
+      this.frameMaterial = customer.frameMaterial || customer.material || firstPhoto?.frameMaterial || firstPhoto?.material || '';
+      this.frameColor = customer.frameColor || customer.color || firstPhoto?.frameColor || firstPhoto?.color || '';
+      this.quantity = (customer.quantity !== undefined && customer.quantity !== null)
+        ? Number(customer.quantity)
+        : (firstPhoto?.quantity ? Number(firstPhoto.quantity) : null);
+      this.notes = customer.notes || (this.frameConfigMode === 'same' ? (firstPhoto?.notes || '') : '');
+
+      this.orderDate = this.formatDateDDMMYYYY(customer.orderDate) || this.getToday();
+      this.deliveryDate = this.formatDateDDMMYYYY(customer.deliveryDate);
+      this.totalAmount = customer.totalAmount !== undefined && customer.totalAmount !== null ? Number(customer.totalAmount) : 0;
+      this.advancePaid = customer.advancePaid !== undefined && customer.advancePaid !== null ? Number(customer.advancePaid) : 0;
+      this.paymentStatus = this.normalizePaymentStatus(customer.paymentStatus || '');
+      this.orderStatus = this.normalizeOrderStatus(customer.orderStatus || '');
+
+      if (customer.photos && customer.photos.length > 0) {
+        this.selectedPhotos = customer.photos.map(p => ({
+          id: p.id,
+          name: p.name,
+          url: resolvePhotoUrl(p.url),
+          size: p.size || '2.5 MB',
+          frameSize: this.normalizeFrameSize(
+            this.frameConfigMode === 'same' ? this.frameSize : (p.frameSize || this.frameSize),
+            p.customWidth,
+            p.customHeight
+          ),
+          unit: this.normalizeUnit(this.frameConfigMode === 'same' ? this.unit : (p.unit || this.unit)),
+          customWidth: p.customWidth ? String(p.customWidth) : '',
+          customHeight: p.customHeight ? String(p.customHeight) : '',
+          frameType: this.normalizeFrameType(this.frameConfigMode === 'same' ? this.frameType : (p.frameType || this.frameType)),
+          frameMaterial: (this.frameConfigMode === 'same' ? this.frameMaterial : (p.frameMaterial || p.material || this.frameMaterial)) || '',
+          frameColor: (this.frameConfigMode === 'same' ? this.frameColor : (p.frameColor || p.color || this.frameColor)) || '',
+          orientation: this.normalizeOrientation(this.frameConfigMode === 'same' ? this.orientation : (p.orientation || this.orientation)),
+          quantity: this.frameConfigMode === 'same'
+            ? (this.quantity ? Number(this.quantity) : (p.quantity ? Number(p.quantity) : undefined))
+            : (p.quantity ? Number(p.quantity) : (this.quantity ? Number(this.quantity) : undefined)),
+          notes: this.frameConfigMode === 'individual' ? (p.notes || '') : ''
+        }));
+      } else {
+        this.selectedPhotos = [];
+      }
     }
 
     this.showAddCustomerModal = true;
     document.body.style.overflow = 'hidden';
     this.cdr.detectChanges();
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && window.RaigonSelect2) {
+        window.RaigonSelect2.enhanceAll();
+      }
+    }, 0);
   }
 
   closeAddCustomerModal(): void {
+    if (this.showAddCustomerModal) {
+      if (this.isEditMode && this.editingCustomerId) {
+        this.editCustomerDrafts[this.editingCustomerId] = this.captureCurrentCustomerDraft();
+      } else if (!this.isEditMode) {
+        this.addCustomerDraft = this.captureCurrentCustomerDraft();
+      }
+    }
     this.showAddCustomerModal = false;
     this.isEditMode = false;
     this.editingCustomerId = null;
@@ -433,7 +679,13 @@ export class ModalComponent implements OnInit, OnDestroy {
   }
 
   openViewCustomerModal(customer: Customer): void {
-    this.viewCustomerData = customer;
+    this.viewCustomerData = {
+      ...customer,
+      photos: (customer.photos || []).map(p => ({
+        ...p,
+        url: resolvePhotoUrl(p.url)
+      }))
+    };
     this.showViewCustomerModal = true;
     document.body.style.overflow = 'hidden';
     this.cdr.detectChanges();
@@ -458,9 +710,18 @@ export class ModalComponent implements OnInit, OnDestroy {
     this.customerService.sendWhatsAppReceipt(this.viewCustomerData);
   }
 
+  rawLightboxTitle = '';
+
+  formatLightboxTitle(title?: string): string {
+    if (!title) return '';
+    const clean = title.trim();
+    return clean.length > 10 ? clean.substring(0, 10) + '...' : clean;
+  }
+
   openLightbox(url: string, title: string = 'Photo Preview'): void {
     this.lightboxImageUrl = url;
-    this.lightboxTitle = title;
+    this.rawLightboxTitle = title || 'photo';
+    this.lightboxTitle = this.formatLightboxTitle(title);
     this.showLightboxModal = true;
     this.cdr.detectChanges();
   }
@@ -468,6 +729,7 @@ export class ModalComponent implements OnInit, OnDestroy {
   closeLightbox(): void {
     this.showLightboxModal = false;
     this.lightboxImageUrl = '';
+    this.rawLightboxTitle = '';
     this.cdr.detectChanges();
   }
 
@@ -475,25 +737,42 @@ export class ModalComponent implements OnInit, OnDestroy {
     if (!this.lightboxImageUrl) return;
     const a = document.createElement('a');
     a.href = this.lightboxImageUrl;
-    a.download = (this.lightboxTitle || 'photo').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.jpg';
+    a.download = (this.rawLightboxTitle || this.lightboxTitle || 'photo').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.jpg';
     a.click();
   }
 
   openFrameSizeModal(frameSize: FrameSize | null = null): void {
     if (frameSize) {
       this.formSizeId = frameSize.id;
-      this.formSizeName = frameSize.name;
-      this.formSizeWidth = frameSize.width;
-      this.formSizeHeight = frameSize.height;
-      this.formSizeUnit = frameSize.unit || '';
-      this.formSizeCategory = frameSize.category || '';
+      if (this.editFrameSizeDrafts[frameSize.id]) {
+        const draft = this.editFrameSizeDrafts[frameSize.id];
+        this.formSizeName = draft.formSizeName;
+        this.formSizeWidth = draft.formSizeWidth;
+        this.formSizeHeight = draft.formSizeHeight;
+        this.formSizeUnit = draft.formSizeUnit;
+        this.formSizeCategory = draft.formSizeCategory;
+      } else {
+        this.formSizeName = frameSize.name;
+        this.formSizeWidth = frameSize.width;
+        this.formSizeHeight = frameSize.height;
+        this.formSizeUnit = frameSize.unit || '';
+        this.formSizeCategory = frameSize.category || '';
+      }
     } else {
       this.formSizeId = '';
-      this.formSizeName = '';
-      this.formSizeWidth = null;
-      this.formSizeHeight = null;
-      this.formSizeUnit = '';
-      this.formSizeCategory = '';
+      if (this.addFrameSizeDraft) {
+        this.formSizeName = this.addFrameSizeDraft.formSizeName;
+        this.formSizeWidth = this.addFrameSizeDraft.formSizeWidth;
+        this.formSizeHeight = this.addFrameSizeDraft.formSizeHeight;
+        this.formSizeUnit = this.addFrameSizeDraft.formSizeUnit;
+        this.formSizeCategory = this.addFrameSizeDraft.formSizeCategory;
+      } else {
+        this.formSizeName = '';
+        this.formSizeWidth = null;
+        this.formSizeHeight = null;
+        this.formSizeUnit = '';
+        this.formSizeCategory = '';
+      }
     }
     this.showFrameSizeModal = true;
     document.body.style.overflow = 'hidden';
@@ -501,6 +780,27 @@ export class ModalComponent implements OnInit, OnDestroy {
   }
 
   closeFrameSizeModal(): void {
+    if (this.showFrameSizeModal) {
+      if (this.formSizeId) {
+        this.editFrameSizeDrafts[this.formSizeId] = {
+          formSizeId: this.formSizeId,
+          formSizeName: this.formSizeName,
+          formSizeWidth: this.formSizeWidth,
+          formSizeHeight: this.formSizeHeight,
+          formSizeUnit: this.formSizeUnit,
+          formSizeCategory: this.formSizeCategory
+        };
+      } else {
+        this.addFrameSizeDraft = {
+          formSizeId: '',
+          formSizeName: this.formSizeName,
+          formSizeWidth: this.formSizeWidth,
+          formSizeHeight: this.formSizeHeight,
+          formSizeUnit: this.formSizeUnit,
+          formSizeCategory: this.formSizeCategory
+        };
+      }
+    }
     this.showFrameSizeModal = false;
     this.formSizeId = '';
     this.formSizeName = '';
@@ -608,13 +908,17 @@ export class ModalComponent implements OnInit, OnDestroy {
     if (isNaN(width) || width <= 0) width = 12;
     if (isNaN(height) || height <= 0) height = 18;
 
+    const category = (this.formSizeCategory === 'Custom Size' || this.formSizeCategory === 'Customize' || this.formSizeCategory?.toLowerCase() === 'custom')
+      ? 'Customize'
+      : (this.formSizeCategory || 'Standard Photo');
+
     const sizeData: FrameSize = {
       id: this.formSizeId || '',
       name,
       width,
       height,
       unit: this.formSizeUnit || 'inch',
-      category: this.formSizeCategory || 'Standard Photo',
+      category,
       status: 'Active',
       activeOrdersCount: 0,
       usageCount: 0
@@ -622,8 +926,21 @@ export class ModalComponent implements OnInit, OnDestroy {
 
     this.customerService.saveFrameSize(sizeData).subscribe({
       next: (saved) => {
+        if (this.formSizeId) {
+          delete this.editFrameSizeDrafts[this.formSizeId];
+        } else {
+          this.addFrameSizeDraft = null;
+        }
         this.toastService.success(`Frame size "${saved.name || name}" saved!`);
-        this.closeFrameSizeModal();
+        this.showFrameSizeModal = false;
+        this.formSizeId = '';
+        this.formSizeName = '';
+        this.formSizeWidth = null;
+        this.formSizeHeight = null;
+        this.formSizeUnit = '';
+        this.formSizeCategory = '';
+        document.body.style.overflow = '';
+        this.cdr.detectChanges();
       },
       error: (err) => {
         const errorMsg = err?.error?.message || err?.message || 'Failed to save frame size to server.';
@@ -644,6 +961,7 @@ export class ModalComponent implements OnInit, OnDestroy {
       const reader = new FileReader();
       reader.onload = (e) => {
         this.selectedPhotos.push({
+          file: file,
           name: file.name,
           url: e.target?.result as string,
           size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
@@ -675,6 +993,7 @@ export class ModalComponent implements OnInit, OnDestroy {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (this.selectedPhotos[index]) {
+        this.selectedPhotos[index].file = file;
         this.selectedPhotos[index].name = file.name;
         this.selectedPhotos[index].url = e.target?.result as string;
         this.selectedPhotos[index].size = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
@@ -704,8 +1023,36 @@ export class ModalComponent implements OnInit, OnDestroy {
       case 'Completed': return 'badge-completed';
       case 'Delivered': return 'badge-delivered';
       case 'Cancelled': return 'badge-cancelled';
-      default: return 'badge-pending';
+      case 'Pending': return 'badge-pending';
+      default: return '';
     }
+  }
+
+  getSameFrameNotes(customer?: Customer | null): string {
+    if (!customer) return '';
+    if (customer.notes && customer.notes.trim()) {
+      return customer.notes.trim();
+    }
+    if (customer.photos && customer.photos.length > 0) {
+      const pWithNotes = customer.photos.find(p => p.notes && p.notes.trim());
+      if (pWithNotes && pWithNotes.notes) {
+        return pWithNotes.notes.trim();
+      }
+    }
+    return '';
+  }
+
+  isIndividualMode(customer?: Customer | null): boolean {
+    if (!customer) return false;
+    const mode = (customer.frameConfigMode || '').toLowerCase();
+    if (mode === 'individual') return true;
+    if (mode === 'same') return false;
+    if (customer.photos && customer.photos.length > 1) {
+      const firstSize = customer.photos[0].frameSize || '';
+      const hasDistinct = customer.photos.some(p => (p.frameSize || '') !== firstSize);
+      if (hasDistinct) return true;
+    }
+    return false;
   }
 
   // =========================================
@@ -716,53 +1063,72 @@ export class ModalComponent implements OnInit, OnDestroy {
     this.nameTouched = true;
     this.phoneTouched = true;
 
+    if (this.nameError || this.phoneError || this.deliveryDateError) {
+      return;
+    }
+
     const name = this.customerName ? this.customerName.trim() : '';
-    if (!name) {
-      this.toastService.warning('Customer name is required.');
-      return;
-    }
-    if (!/^[a-zA-Z\s]+$/.test(name)) {
-      this.toastService.warning('Customer name can contain letters and spaces only.');
-      return;
-    }
-
     const phone = this.customerPhone ? this.customerPhone.trim() : '';
-    if (!phone) {
-      this.toastService.warning('Phone number is required.');
-      return;
-    }
-    if (!/^\d{10}$/.test(phone)) {
-      this.toastService.warning('Phone number must contain exactly 10 digits.');
-      return;
-    }
 
+    const photosToUpload = this.selectedPhotos.filter(p => !!p.file);
+
+    if (photosToUpload.length > 0) {
+      const files = photosToUpload.map(p => p.file!);
+      this.customerService.uploadPhotos(files).subscribe({
+        next: (uploadedList) => {
+          if (Array.isArray(uploadedList)) {
+            uploadedList.forEach((uploaded, idx) => {
+              const target = photosToUpload[idx];
+              if (target && (uploaded.photoUrl || (uploaded as any).url)) {
+                target.url = resolvePhotoUrl(uploaded.photoUrl || (uploaded as any).url);
+                target.file = undefined;
+              }
+            });
+          }
+          this.executeSaveCustomer(name, phone);
+        },
+        error: (err) => {
+          console.warn('Photo upload fallback, continuing to save customer:', err);
+          this.executeSaveCustomer(name, phone);
+        }
+      });
+    } else {
+      this.executeSaveCustomer(name, phone);
+    }
+  }
+
+  private executeSaveCustomer(name: string, phone: string): void {
     const total = Number(this.totalAmount) || 0;
     const advance = Number(this.advancePaid) || 0;
     const balance = Math.max(total - advance, 0);
 
+    const customWidth = this.customWidth;
+    const customHeight = this.customHeight;
+
     const photosPayload: CustomerPhoto[] = this.selectedPhotos.map((p, idx) => ({
-      id: `P-${Date.now()}-${idx + 1}`,
+      id: p.id || `P-${Date.now()}-${idx + 1}`,
       name: p.name,
-      url: p.url,
+      url: resolvePhotoUrl(p.url),
       size: p.size || '2.5 MB',
-      frameSize: this.frameConfigMode === 'individual' ? (p.frameSize || '') : (p.frameSize || this.frameSize || ''),
-      unit: this.frameConfigMode === 'individual' ? (p.unit || '') : (p.unit || this.unit || ''),
-      frameType: this.frameConfigMode === 'individual' ? (p.frameType || '') : (p.frameType || this.frameType || ''),
-      material: this.frameConfigMode === 'individual' ? (p.frameMaterial || '') : (p.frameMaterial || this.frameMaterial || ''),
-      frameMaterial: this.frameConfigMode === 'individual' ? (p.frameMaterial || '') : (p.frameMaterial || this.frameMaterial || ''),
-      color: this.frameConfigMode === 'individual' ? (p.frameColor || '') : (p.frameColor || this.frameColor || ''),
-      frameColor: this.frameConfigMode === 'individual' ? (p.frameColor || '') : (p.frameColor || this.frameColor || ''),
-      orientation: this.frameConfigMode === 'individual' ? (p.orientation || '') : (p.orientation || this.orientation || ''),
-      quantity: Number(p.quantity) || (this.frameConfigMode === 'same' ? Number(this.quantity) || 1 : 1),
-      notes: p.notes || (this.frameConfigMode === 'same' ? this.notes : '') || ''
+      frameSize: this.frameConfigMode === 'individual' ? (p.frameSize || this.frameSize || '') : (this.frameSize || p.frameSize || ''),
+      unit: this.frameConfigMode === 'individual' ? (p.unit || this.unit || '') : (this.unit || p.unit || ''),
+      customWidth: p.customWidth ? Number(p.customWidth) : (customWidth ? Number(customWidth) : undefined),
+      customHeight: p.customHeight ? Number(p.customHeight) : (customHeight ? Number(customHeight) : undefined),
+      frameType: this.frameConfigMode === 'individual' ? (p.frameType || this.frameType || '') : (this.frameType || p.frameType || ''),
+      material: this.frameConfigMode === 'individual' ? (p.frameMaterial || this.frameMaterial || '') : (this.frameMaterial || p.frameMaterial || ''),
+      frameMaterial: this.frameConfigMode === 'individual' ? (p.frameMaterial || this.frameMaterial || '') : (this.frameMaterial || p.frameMaterial || ''),
+      color: this.frameConfigMode === 'individual' ? (p.frameColor || this.frameColor || '') : (this.frameColor || p.frameColor || ''),
+      frameColor: this.frameConfigMode === 'individual' ? (p.frameColor || this.frameColor || '') : (this.frameColor || p.frameColor || ''),
+      orientation: this.frameConfigMode === 'individual' ? (p.orientation || this.orientation || '') : (this.orientation || p.orientation || ''),
+      quantity: this.frameConfigMode === 'individual'
+        ? (p.quantity !== undefined && p.quantity !== null ? Number(p.quantity) : (this.quantity ? Number(this.quantity) : undefined))
+        : (this.quantity ? Number(this.quantity) : undefined),
+      notes: this.frameConfigMode === 'individual' ? (p.notes || '') : ''
     }));
 
     const finalId = this.isEditMode && this.editingCustomerId
       ? this.editingCustomerId
       : this.customerService.generateCustomerId();
-
-    let customWidth = this.customWidth;
-    let customHeight = this.customHeight;
 
     const customerPayload: Customer = {
       id: finalId,
@@ -774,26 +1140,40 @@ export class ModalComponent implements OnInit, OnDestroy {
       address: this.customerAddress.trim(),
       pincode: this.customerPincode.trim(),
       frameSize: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
-        ? (this.selectedPhotos[0].frameSize || this.frameSize)
-        : this.frameSize,
-      customSize: this.frameSize === 'Custom Size' ? `${customWidth || ''} × ${customHeight || ''} ${this.unit}` : '',
-      customWidth: customWidth ? Number(customWidth) : undefined,
-      customHeight: customHeight ? Number(customHeight) : undefined,
+        ? (this.selectedPhotos[0].frameSize || this.frameSize || '')
+        : (this.frameSize || ''),
+      customSize: (this.frameSize === 'Customize' || this.frameSize === 'Custom Size') ? `${customWidth || ''} × ${customHeight || ''} ${this.unit || 'inch'}` : '',
+      customWidth: (customWidth && !isNaN(Number(customWidth))) ? Number(customWidth) : undefined,
+      customHeight: (customHeight && !isNaN(Number(customHeight))) ? Number(customHeight) : undefined,
       frameType: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
-        ? (this.selectedPhotos[0].frameType || this.frameType)
-        : this.frameType,
-      frameMaterial: this.frameMaterial.trim() || 'Teak Wood Moulding',
-      material: this.frameMaterial.trim() || 'Teak Wood Moulding',
-      frameColor: this.frameColor.trim() || 'Walnut Brown',
-      color: this.frameColor.trim() || 'Walnut Brown',
-      unit: this.unit || 'inch',
-      orientation: this.orientation || 'Landscape',
-      quantity: Number(this.quantity) || 1,
+        ? (this.selectedPhotos[0].frameType || this.frameType || '')
+        : (this.frameType || ''),
+      frameMaterial: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].frameMaterial || this.frameMaterial || '')
+        : (this.frameMaterial.trim() || ''),
+      material: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].frameMaterial || this.frameMaterial || '')
+        : (this.frameMaterial.trim() || ''),
+      frameColor: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].frameColor || this.frameColor || '')
+        : (this.frameColor.trim() || ''),
+      color: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].frameColor || this.frameColor || '')
+        : (this.frameColor.trim() || ''),
+      unit: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].unit || this.unit || '')
+        : (this.unit || ''),
+      orientation: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].orientation || this.orientation || '')
+        : (this.orientation || ''),
+      quantity: this.frameConfigMode === 'individual' && this.selectedPhotos.length > 0
+        ? (this.selectedPhotos[0].quantity !== undefined && this.selectedPhotos[0].quantity !== null ? Number(this.selectedPhotos[0].quantity) : (this.quantity ? Number(this.quantity) : undefined))
+        : (this.quantity !== null && this.quantity !== undefined ? Number(this.quantity) : undefined),
       totalAmount: total,
       advancePaid: advance,
       balanceAmount: balance,
-      paymentStatus: this.paymentStatus || 'Partial',
-      orderStatus: this.orderStatus || 'In Progress',
+      paymentStatus: this.paymentStatus || '',
+      orderStatus: this.orderStatus || '',
       orderDate: this.orderDate || this.getToday(),
       deliveryDate: this.deliveryDate || '',
       notes: this.notes.trim(),
@@ -803,6 +1183,9 @@ export class ModalComponent implements OnInit, OnDestroy {
     };
 
     if (this.isEditMode) {
+      if (this.editingCustomerId) {
+        delete this.editCustomerDrafts[this.editingCustomerId];
+      }
       this.customerService.updateCustomer(customerPayload);
       this.toastService.success(`Customer ${customerPayload.id} updated successfully! Opening WhatsApp Receipt...`);
 
@@ -810,6 +1193,7 @@ export class ModalComponent implements OnInit, OnDestroy {
         this.customerService.sendWhatsAppReceipt(customerPayload);
       }, 400);
     } else {
+      this.addCustomerDraft = null;
       const saved = this.customerService.saveCustomer(customerPayload);
       this.toastService.success(`Customer ${saved.id} saved successfully! Opening WhatsApp Receipt...`);
 
@@ -819,8 +1203,12 @@ export class ModalComponent implements OnInit, OnDestroy {
       }, 400);
     }
 
-    this.closeAddCustomerModal();
+    this.showAddCustomerModal = false;
+    this.isEditMode = false;
+    this.editingCustomerId = null;
+    document.body.style.overflow = '';
     this.resetForm();
+    this.cdr.detectChanges();
   }
 
   resetForm(): void {
@@ -857,25 +1245,37 @@ export class ModalComponent implements OnInit, OnDestroy {
     this.selectedPhotos = [];
   }
 
-  formatDate(val: string | undefined): string {
+  formatDate(val: string | undefined | null): string {
     if (!val || val === 'N/A' || val === 'TBD') return val || '';
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    if (/^[A-Za-z]{3}\s+\d{1,2},?\s+\d{4}$/.test(val.trim())) {
-      return val.trim();
+    const str = String(val).trim();
+
+    // If already in DD-MM-YYYY or DD/MM/YYYY format
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmyMatch) {
+      const dd = dmyMatch[1].padStart(2, '0');
+      const mm = dmyMatch[2].padStart(2, '0');
+      const yyyy = dmyMatch[3];
+      return `${dd}/${mm}/${yyyy}`;
     }
-    const d = new Date(val);
+
+    // If in YYYY-MM-DD or YYYY/MM/DD format
+    const ymdMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (ymdMatch) {
+      const yyyy = ymdMatch[1];
+      const mm = ymdMatch[2].padStart(2, '0');
+      const dd = ymdMatch[3].padStart(2, '0');
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // If text date like "Sep 17, 2026", "17 Sep 2026", etc.
+    const d = new Date(str);
     if (!isNaN(d.getTime())) {
-      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
     }
-    const parts = val.trim().split(/[-/]/);
-    if (parts.length === 3) {
-      let dObj: Date | null = null;
-      if (parts[0].length === 4) dObj = new Date(+parts[0], +parts[1] - 1, +parts[2]);
-      else if (parts[2].length === 4) dObj = new Date(+parts[2], +parts[1] - 1, +parts[0]);
-      if (dObj && !isNaN(dObj.getTime())) {
-        return `${months[dObj.getMonth()]} ${dObj.getDate()}, ${dObj.getFullYear()}`;
-      }
-    }
+
     return val;
   }
 
@@ -908,8 +1308,10 @@ export class ModalComponent implements OnInit, OnDestroy {
 
   private getToday(): string {
     const d = new Date();
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
   }
 
   ngOnDestroy(): void {

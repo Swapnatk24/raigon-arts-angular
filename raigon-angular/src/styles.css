@@ -1679,8 +1679,9 @@ thead tr th {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(47, 43, 61, 0.6);
+  background-color: rgba(47, 43, 61, 0.72);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -2369,12 +2370,86 @@ select.status-select-badge[data-vuexy-select2-init="true"] {
 
 .photo-select-checkbox {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 20px;
-  height: 20px;
-  z-index: 5;
-  accent-color: var(--primary);
+  top: 12px;
+  left: 12px;
+  width: 22px;
+  height: 22px;
+  z-index: 10;
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(0, 0, 0, 0.24);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 13px 13px;
+}
+
+.photo-select-checkbox:hover {
+  background-color: #FFFFFF;
+  border-color: #D4BF8A;
+  box-shadow: 0 0 0 3px rgba(212, 191, 138, 0.28), 0 4px 10px rgba(0, 0, 0, 0.2);
+  transform: scale(1.08);
+}
+
+.photo-select-checkbox:focus-visible {
+  outline: 2px solid #D4BF8A;
+  outline-offset: 2px;
+}
+
+.photo-select-checkbox:active {
+  transform: scale(0.92);
+}
+
+.photo-select-checkbox:checked {
+  background-color: #000000;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.2 8.2L6.2 11.2L12.8 4.6' stroke='%23D4BF8A' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  border-color: #D4BF8A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 0 1px #D4BF8A, 0 0 12px rgba(212, 191, 138, 0.4);
+  transform: scale(1.04);
+}
+
+.photo-select-checkbox:checked:hover {
+  background-color: #111111;
+  box-shadow: 0 0 0 3px rgba(212, 191, 138, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4);
+  transform: scale(1.1);
+}
+
+/* Dark Theme Overrides */
+[data-theme="dark"] .photo-select-checkbox,
+body.dark-mode .photo-select-checkbox {
+  background-color: rgba(37, 41, 60, 0.88);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .photo-select-checkbox:hover,
+body.dark-mode .photo-select-checkbox:hover {
+  background-color: rgba(47, 51, 73, 0.98);
+  border-color: #D4BF8A;
+  box-shadow: 0 0 0 3px rgba(212, 191, 138, 0.3), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .photo-select-checkbox:checked,
+body.dark-mode .photo-select-checkbox:checked {
+  background-color: #000000;
+  border-color: #D4BF8A;
+  box-shadow: 0 0 0 1px #D4BF8A, 0 0 14px rgba(212, 191, 138, 0.5);
+}
+
+/* Subtle card highlight when photo is selected */
+.photo-card:has(.photo-select-checkbox:checked) {
+  border-color: rgba(212, 191, 138, 0.6);
+  box-shadow: 0 0 0 1px rgba(212, 191, 138, 0.4), var(--shadow-md);
 }
 
 /* Toast Notification */
@@ -3697,6 +3772,14 @@ body.dark-mode .page-btn:hover {
   color: #FFFFFF !important;
   font-weight: 700;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.cal-day.disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  background: none !important;
+  color: var(--text-light) !important;
 }
 
 .calendar-presets {

@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CustomerService } from '../services/customer.service';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
@@ -13,9 +15,9 @@ export class Sidebar {
   sidebarCollapsed = false;
   currentView = 'dashboard';
 
-  constructor(
-    private customerService: CustomerService
-  ) {}
+  private customerService = inject(CustomerService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   toggleSidebar(): void {
     this.sidebarCollapsed =
@@ -31,8 +33,8 @@ export class Sidebar {
   }
 
   logout(): void {
-    localStorage.removeItem('isLoggedIn');
-    window.location.href = '/';
+    this.authService.logout();
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 }
 

@@ -9,18 +9,33 @@ export class StorageService {
   private readonly LOGGED_IN_KEY = 'raigon_logged_in';
 
   getToken(): string | null {
-    if (typeof localStorage === 'undefined') return null;
-    return localStorage.getItem(this.TOKEN_KEY);
+    if (typeof localStorage !== 'undefined') {
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      if (token) return token;
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem(this.TOKEN_KEY);
+    }
+    return null;
   }
 
   setToken(token: string): void {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(this.TOKEN_KEY, token);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.TOKEN_KEY, token);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(this.TOKEN_KEY, token);
+    }
   }
 
   getUser(): any {
-    if (typeof localStorage === 'undefined') return null;
-    const user = localStorage.getItem(this.USER_KEY);
+    let user: string | null = null;
+    if (typeof localStorage !== 'undefined') {
+      user = localStorage.getItem(this.USER_KEY);
+    }
+    if (!user && typeof sessionStorage !== 'undefined') {
+      user = sessionStorage.getItem(this.USER_KEY);
+    }
     if (!user) return null;
     try {
       return JSON.parse(user);
@@ -30,29 +45,51 @@ export class StorageService {
   }
 
   setUser(user: any): void {
-    if (typeof localStorage === 'undefined') return;
-    if (typeof user === 'string') {
-      localStorage.setItem(this.USER_KEY, user);
-    } else {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    const userStr = typeof user === 'string' ? user : JSON.stringify(user);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.USER_KEY, userStr);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(this.USER_KEY, userStr);
     }
   }
 
   isLoggedIn(): boolean {
-    if (typeof localStorage === 'undefined') return false;
-    return localStorage.getItem(this.LOGGED_IN_KEY) === 'true';
+    if (typeof localStorage !== 'undefined') {
+      if (localStorage.getItem(this.LOGGED_IN_KEY) === 'true' || !!localStorage.getItem(this.TOKEN_KEY)) {
+        return true;
+      }
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      if (sessionStorage.getItem(this.LOGGED_IN_KEY) === 'true' || !!sessionStorage.getItem(this.TOKEN_KEY)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   setLoggedIn(status: boolean): void {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(this.LOGGED_IN_KEY, status ? 'true' : 'false');
+    const val = status ? 'true' : 'false';
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.LOGGED_IN_KEY, val);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(this.LOGGED_IN_KEY, val);
+    }
   }
 
   clearAuth(): void {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    localStorage.removeItem(this.LOGGED_IN_KEY);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USER_KEY);
+      localStorage.removeItem(this.LOGGED_IN_KEY);
+      localStorage.removeItem('isLoggedIn');
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(this.TOKEN_KEY);
+      sessionStorage.removeItem(this.USER_KEY);
+      sessionStorage.removeItem(this.LOGGED_IN_KEY);
+    }
   }
 }
 

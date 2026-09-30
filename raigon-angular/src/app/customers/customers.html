@@ -113,6 +113,7 @@
                   [src]="p.url"
                   class="photo-thumbnail-sm"
                   [alt]="p.name"
+                  (error)="$any($event.target).src = 'assets/images/sample_frame_1.jpg'"
                 />
                 <div class="photo-more-badge" *ngIf="cust.photos.length > 3">+{{ cust.photos.length - 3 }}</div>
                 <span class="text-xs font-semibold text-muted" style="margin-left: 6px;">({{ cust.photos.length }})</span>
@@ -121,9 +122,9 @@
             </td>
             <td class="font-semibold">{{ cust.frameSize }}</td>
             <td>{{ cust.frameType }}</td>
-            <td class="font-bold">{{ cust.quantity }}</td>
+            <td class="font-bold">{{ cust.quantity ? cust.quantity : '' }}</td>
             <td>
-              <span class="badge" [ngClass]="getStatusBadgeClass(cust.orderStatus)">
+              <span *ngIf="cust.orderStatus" class="badge" [ngClass]="getStatusBadgeClass(cust.orderStatus)">
                 <span class="badge-dot"></span> {{ cust.orderStatus }}
               </span>
             </td>

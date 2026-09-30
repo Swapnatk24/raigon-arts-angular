@@ -1,6 +1,6 @@
 <div class="datepicker-wrapper">
   <input type="text" [id]="id" [name]="name" class="form-input datepicker-enhanced" [placeholder]="placeholder"
-    [value]="value" [disabled]="disabled" readonly (click)="isOpen = !isOpen" />
+    [value]="value" [disabled]="disabled" (input)="onInput($event)" (click)="isOpen = !isOpen" />
   <i class="fa-regular fa-calendar-days datepicker-icon" (click)="isOpen = !isOpen"></i>
 
   <!-- Popover -->
@@ -22,7 +22,7 @@
     <div class="calendar-days-grid">
       <div *ngFor="let d of prevDays" class="cal-day other-month">{{ d }}</div>
       <div *ngFor="let d of daysInMonth" class="cal-day" [class.today]="isToday(d)" [class.selected]="isSelected(d)"
-        (click)="selectDay(d, $event)">
+        [class.disabled]="isPastDisabled(d)" (click)="selectDay(d, $event)">
         {{ d }}
       </div>
       <div *ngFor="let d of nextDays" class="cal-day other-month">{{ d }}</div>

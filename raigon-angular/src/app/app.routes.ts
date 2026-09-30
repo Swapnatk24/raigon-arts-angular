@@ -8,10 +8,12 @@ import { Photos } from './photos/photos';
 import { Frames } from './frames/frames';
 import { Reports } from './reports/reports';
 import { Settings } from './settings/settings';
+import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
+    pathMatch: 'full',
     component: Login
   },
 
@@ -23,6 +25,8 @@ export const routes: Routes = [
   {
     path: '',
     component: Layout,
+    canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
       {
         path: 'dashboard',

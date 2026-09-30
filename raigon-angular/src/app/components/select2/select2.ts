@@ -272,7 +272,7 @@ export class VuexySelect2 {
   enhanceAll(root: ParentNode = document): void {
     if (typeof document === 'undefined') return;
     const target = root || document;
-    const selector = 'select.form-select:not([data-vuexy-select2-init="true"]), select.form-select-sm:not([data-vuexy-select2-init="true"]), select.form-select-lg:not([data-vuexy-select2-init="true"]), select.status-select-badge:not([data-vuexy-select2-init="true"]), select[data-select2]:not([data-vuexy-select2-init="true"])';
+    const selector = 'select.form-select, select.form-select-sm, select.form-select-lg, select.status-select-badge, select[data-select2]';
     const selects = target.querySelectorAll<HTMLSelectElement>(selector);
     selects.forEach(select => this.enhance(select));
   }
@@ -282,10 +282,12 @@ export class VuexySelect2 {
 
     const existingContainer = select.nextElementSibling;
     if (existingContainer && existingContainer.classList.contains('vuexy-select2-container')) {
+      this.refresh(select);
       return;
     }
 
     if (select.dataset['vuexySelect2Init'] === 'true') {
+      this.refresh(select);
       return;
     }
 
@@ -306,7 +308,8 @@ export class VuexySelect2 {
     const trigger = document.createElement('div');
     trigger.className = 'vuexy-select2-trigger';
     if (isStatusBadge) {
-      trigger.className = `vuexy-select2-trigger status-select-badge status-badge-${(select.value || '').toLowerCase().replace(/\s+/g, '-')}`;
+      const valLower = (select.value || '').toLowerCase().replace(/\s+/g, '-');
+      trigger.className = `vuexy-select2-trigger status-select-badge${valLower ? ' status-badge-' + valLower : ''}`;
     }
 
     const labelSpan = document.createElement('span');
@@ -336,21 +339,21 @@ export class VuexySelect2 {
       optionsList.innerHTML = '';
       const options = Array.from(select.options);
 
-      const selectedOpt = select.options[select.selectedIndex] || options[0];
-      labelSpan.textContent = selectedOpt ? selectedOpt.text : 'Select option';
+      const selectedOpt = select.selectedIndex >= 0 ? select.options[select.selectedIndex] : options[0];
+      labelSpan.textContent = selectedOpt ? selectedOpt.text : (options[0]?.text || 'Select option');
 
-      if (isStatusBadge && selectedOpt) {
-        const valLower = selectedOpt.value.toLowerCase().replace(/\s+/g, '-');
-        trigger.className = `vuexy-select2-trigger status-select-badge status-badge-${valLower}`;
+      if (isStatusBadge) {
+        const valLower = (select.value || selectedOpt?.value || '').toLowerCase().replace(/\s+/g, '-');
+        trigger.className = `vuexy-select2-trigger status-select-badge${valLower ? ' status-badge-' + valLower : ''}`;
       }
 
       options.forEach(opt => {
         const item = document.createElement('div');
         item.className = 'vuexy-select2-option';
-        if (isStatusBadge) {
+        if (isStatusBadge && opt.value) {
           item.classList.add(`status-option-${opt.value.toLowerCase().replace(/\s+/g, '-')}`);
         }
-        if (opt.selected) {
+        if (opt.selected || (select.value !== undefined && select.value !== '' && opt.value === select.value)) {
           item.classList.add('selected');
         }
         if (opt.disabled) {
@@ -381,6 +384,7 @@ export class VuexySelect2 {
       const isOpen = container.classList.contains('open');
       this.closeAll();
       if (!isOpen) {
+        renderOptions();
         this.openDropdown(container, trigger, dropdown);
       }
     });
@@ -388,6 +392,12 @@ export class VuexySelect2 {
     renderOptions();
 
     select.addEventListener('change', () => {
+      const selectedOpt = select.options[select.selectedIndex];
+      if (selectedOpt) labelSpan.textContent = selectedOpt.text;
+      renderOptions();
+    });
+
+    select.addEventListener('input', () => {
       const selectedOpt = select.options[select.selectedIndex];
       if (selectedOpt) labelSpan.textContent = selectedOpt.text;
       renderOptions();

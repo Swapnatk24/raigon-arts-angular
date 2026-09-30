@@ -190,7 +190,8 @@
 
       <img
         [src]="photo.url"
-        [alt]="photo.name">
+        [alt]="photo.name"
+        (error)="$any($event.target).src = 'assets/images/sample_frame_1.jpg'">
 
     </div>
 
@@ -327,7 +328,8 @@
                 border-radius: var(--radius-xs);
                 cursor: pointer;
               "
-              (click)="openPhoto(photo)">
+              (click)="openPhoto(photo)"
+              (error)="$any($event.target).src = 'assets/images/sample_frame_1.jpg'">
 
           </td>
 
@@ -380,14 +382,25 @@
 
           <td>
 
-            <button
-              class="action-btn"
-              title="View Fullscreen"
-              (click)="openPhoto(photo)">
+            <div class="table-actions">
+              <button
+                class="action-btn"
+                title="View Fullscreen"
+                (click)="openPhoto(photo)">
 
-              <i class="fa-solid fa-expand"></i>
+                <i class="fa-solid fa-expand"></i>
 
-            </button>
+              </button>
+
+              <button
+                class="action-btn delete"
+                title="Delete Photo"
+                (click)="deletePhoto(photo)">
+
+                <i class="fa-solid fa-trash"></i>
+
+              </button>
+            </div>
 
           </td>
 

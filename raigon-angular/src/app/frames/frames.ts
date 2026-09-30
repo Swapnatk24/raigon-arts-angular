@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -22,13 +22,16 @@ export class Frames implements OnInit, OnDestroy {
 
   constructor(
     private customerService: CustomerService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.subscription.add(
       this.customerService.frameSizes$.subscribe(sizes => {
-        this.frameSizes = sizes;
+        this.frameSizes = sizes || [];
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       })
     );
     this.customerService.fetchFrameSizes().subscribe();
@@ -45,16 +48,18 @@ export class Frames implements OnInit, OnDestroy {
       return this.frameSizes;
     }
 
-    return this.frameSizes.filter(s =>
-      s.name.toLowerCase().includes(query) ||
-      s.category.toLowerCase().includes(query) ||
-      (s.code && s.code.toLowerCase().includes(query)) ||
-      s.id.toLowerCase().includes(query)
-    );
+    return this.frameSizes.filter(s => {
+      const cat = (s.category === 'Custom Size' || s.category === 'Customize' || s.category?.toLowerCase() === 'custom') ? 'Customize' : s.category;
+      return s.name.toLowerCase().includes(query) ||
+        cat.toLowerCase().includes(query) ||
+        (s.code && s.code.toLowerCase().includes(query)) ||
+        s.id.toLowerCase().includes(query);
+    });
   }
 
   handleSearch(value: string): void {
     this.searchQuery = value;
+    this.cdr.markForCheck();
   }
 
   openFrameModal(id: string | null = null): void {
@@ -78,6 +83,8 @@ export class Frames implements OnInit, OnDestroy {
         this.customerService.deleteFrameSize(id).subscribe({
           next: () => {
             this.toastService.warning(`Frame size "${name}" deleted.`);
+            this.cdr.markForCheck();
+            this.cdr.detectChanges();
           },
           error: (err) => {
             this.toastService.error(err?.error?.message || 'Failed to delete frame size.');

@@ -23,6 +23,7 @@ export class DatePickerComponent implements ControlValueAccessor {
   @Input() name = '';
   @Input() placeholder = 'Select date';
   @Input() disabled = false;
+  @Input() minDate: Date | string | null = null;
 
   isOpen = false;
   value = '';
@@ -88,6 +89,21 @@ export class DatePickerComponent implements ControlValueAccessor {
   registerOnTouched(fn: any): void { this.onTouched = fn; }
   setDisabledState(isDisabled: boolean): void { this.disabled = isDisabled; }
 
+  // Manual input handling
+  onInput(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    this.value = input.value;
+    const parsed = this.parseDate(input.value);
+    if (parsed) {
+      this.selectedDate = parsed;
+      this.currentDate = new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+    } else {
+      this.selectedDate = null;
+    }
+    this.onChange(this.value);
+    this.onTouched();
+  }
+
   // Navigation
   prevMonth(e: Event): void {
     e.stopPropagation();
@@ -102,6 +118,7 @@ export class DatePickerComponent implements ControlValueAccessor {
   // Selection
   selectDay(day: number, e: Event): void {
     e.stopPropagation();
+    if (this.isPastDisabled(day)) return;
     this.setDate(new Date(this.year, this.month, day));
   }
 
@@ -109,6 +126,11 @@ export class DatePickerComponent implements ControlValueAccessor {
     e.stopPropagation();
     const d = new Date();
     d.setDate(d.getDate() + days);
+    d.setHours(0, 0, 0, 0);
+    if (this.minDate) {
+      const min = this.getNormalizedDate(this.minDate);
+      if (min && d.getTime() < min.getTime()) return;
+    }
     this.setDate(d);
   }
 
@@ -144,17 +166,44 @@ export class DatePickerComponent implements ControlValueAccessor {
       this.selectedDate.getDate() === day;
   }
 
+  isPastDisabled(day: number): boolean {
+    if (!this.minDate) return false;
+    const min = this.getNormalizedDate(this.minDate);
+    if (!min) return false;
+    const current = new Date(this.year, this.month, day);
+    current.setHours(0, 0, 0, 0);
+    return current.getTime() < min.getTime();
+  }
+
+  private getNormalizedDate(val: Date | string | null): Date | null {
+    if (!val) return null;
+    if (val === 'today') {
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      return t;
+    }
+    const d = typeof val === 'string' ? this.parseDate(val) : new Date(val);
+    if (!d || isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
   private parseDate(val: string): Date | null {
     if (!val) return null;
     const trimmed = val.trim();
+    const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmyMatch) {
+      const d = new Date(+dmyMatch[3], +dmyMatch[2] - 1, +dmyMatch[1]);
+      if (!isNaN(d.getTime())) return d;
+    }
+    const ymdMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (ymdMatch) {
+      const d = new Date(+ymdMatch[1], +ymdMatch[2] - 1, +ymdMatch[3]);
+      if (!isNaN(d.getTime())) return d;
+    }
     const d = new Date(trimmed);
     if (!isNaN(d.getTime())) {
       return d;
-    }
-    const parts = trimmed.split(/[-/]/);
-    if (parts.length === 3) {
-      if (parts[0].length === 4) return new Date(+parts[0], +parts[1] - 1, +parts[2]);
-      if (parts[2].length === 4) return new Date(+parts[2], +parts[1] - 1, +parts[0]);
     }
     return null;
   }

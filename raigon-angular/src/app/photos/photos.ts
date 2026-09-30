@@ -1,4 +1,4 @@
-﻿import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -155,29 +155,86 @@ export class Photos implements OnInit, OnDestroy {
   }
 
   downloadSelected(): void {
-
     if (this.selectedPhotoIds.size === 0) {
       return;
     }
 
-    this.toastService.success(
-      `Downloading ${this.selectedPhotoIds.size} selected high-res photos...`
-    );
+    const selected = this.photos.filter(p => this.selectedPhotoIds.has(p.id));
+    selected.forEach(photo => {
+      if (photo.url) {
+        const a = document.createElement('a');
+        a.href = photo.url;
+        a.download = (photo.name || 'photo').replace(/[^a-z0-9.-]/gi, '_');
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
 
+    this.toastService.success(
+      `Downloading ${this.selectedPhotoIds.size} selected photo(s)...`
+    );
   }
 
   deleteSelected(): void {
-
     if (this.selectedPhotoIds.size === 0) {
       return;
     }
 
-    this.toastService.warning(
-      `${this.selectedPhotoIds.size} photos removed from collection selection.`
-    );
+    const count = this.selectedPhotoIds.size;
+    const selectedItems = this.photos.filter(p => this.selectedPhotoIds.has(p.id));
+
+    // Group selected photos by customerId
+    const customerMap = new Map<string, PhotoItem[]>();
+    selectedItems.forEach(item => {
+      const list = customerMap.get(item.customerId) || [];
+      list.push(item);
+      customerMap.set(item.customerId, list);
+    });
+
+    const allCustomers = this.customerService.getCustomers();
+    customerMap.forEach((toDelete, custId) => {
+      const cust = allCustomers.find(c => c.id === custId);
+      if (!cust || !cust.photos) return;
+
+      const deleteIds = new Set(toDelete.map(d => d.id));
+      const deleteUrls = new Set(toDelete.map(d => d.url).filter(Boolean));
+      const deleteNames = new Set(toDelete.map(d => d.name).filter(Boolean));
+
+      const remainingPhotos = cust.photos.filter((p, idx) => {
+        const pId = p.id || `${cust.id}-${idx}`;
+        if (deleteIds.has(pId)) return false;
+        if (p.url && deleteUrls.has(p.url) && deleteNames.has(p.name)) return false;
+        return true;
+      });
+
+      this.customerService.updateCustomer({
+        ...cust,
+        photos: remainingPhotos
+      });
+    });
 
     this.selectedPhotoIds.clear();
+    this.toastService.warning(
+      `${count} photo${count > 1 ? 's' : ''} deleted from collection.`
+    );
+  }
 
+  deletePhoto(photo: PhotoItem): void {
+    const cust = this.customerService.getCustomer(photo.customerId);
+    if (cust && cust.photos) {
+      const remainingPhotos = cust.photos.filter((p, idx) => {
+        const pId = p.id || `${cust.id}-${idx}`;
+        return pId !== photo.id && p.url !== photo.url && p.name !== photo.name;
+      });
+      this.customerService.updateCustomer({
+        ...cust,
+        photos: remainingPhotos
+      });
+      this.selectedPhotoIds.delete(photo.id);
+      this.toastService.warning(`Photo "${photo.name}" deleted.`);
+    }
   }
 
   openPhoto(photo: PhotoItem): void {
