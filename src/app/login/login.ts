@@ -38,6 +38,7 @@ export class Login implements OnInit, OnDestroy {
 
   timerSeconds = 0;
   isSendingOtp = false;
+  isLoading = false;
   private otpTimerInterval: any = null;
 
   ngOnInit(): void {
@@ -160,6 +161,7 @@ export class Login implements OnInit, OnDestroy {
     this.forgotPassword = false;
     this.forgotStep = 1;
     this.isSendingOtp = false;
+    this.isLoading = false;
     this.cdr.detectChanges();
   }
 
@@ -171,6 +173,7 @@ export class Login implements OnInit, OnDestroy {
     this.stopOTPTimer();
     this.forgotStep = 1;
     this.isSendingOtp = false;
+    this.isLoading = false;
     this.cdr.detectChanges();
   }
 
@@ -297,6 +300,8 @@ export class Login implements OnInit, OnDestroy {
 
   login(e?: Event): void {
     if (e) e.preventDefault();
+    if (this.isLoading) return;
+
     const email = (this.username || '').trim();
     const pass = (this.password || '').trim();
 
@@ -305,8 +310,12 @@ export class Login implements OnInit, OnDestroy {
       return;
     }
 
+    this.isLoading = true;
+    this.cdr.detectChanges();
+
     this.authService.login({ username: email, password: pass }).subscribe({
       next: () => {
+        this.isLoading = false;
         this.toastService.success('Welcome to Raigon Arts Management System!');
         this.loginSuccess.emit();
         this.checkAuth();
@@ -314,6 +323,7 @@ export class Login implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       },
       error: (err) => {
+        this.isLoading = false;
         const errorMsg =
           err?.error?.message ||
           err?.error?.title ||
